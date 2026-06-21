@@ -88,7 +88,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   function formatBytes(bytes) {
     if (!bytes || isNaN(bytes)) return '0 B';
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
@@ -157,10 +157,11 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     } while (nextPageId);
 
     const totalCount = mediaKeys.length;
-    if (totalCount === 0) return { count: 0, size: 0 };
+    if (totalCount === 0) return { count: 0, size: 0, items: [] };
 
     let totalSize = 0;
     const batchSize = 100;
+    const items = [];
     for (let i = 0; i < mediaKeys.length; i += batchSize) {
       if (onProgress) {
         onProgress(i, totalCount);
@@ -176,13 +177,15 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       const itemsData = batchRes && batchRes[0] ? batchRes[0][1] : [];
       for (const itemData of itemsData) {
         if (itemData && itemData[1]) {
+          const filename = itemData[1][3] || '(unknown)';
           const size = itemData[1][9] || 0; // Index 9 is the file size in bytes
           totalSize += size;
+          items.push({ filename, size });
         }
       }
     }
     
-    return { count: totalCount, size: totalSize };
+    return { count: totalCount, size: totalSize, items };
   }
 
   function getTile(el) {
@@ -304,6 +307,57 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
 
     /* Un-albumed Highlight */
     .gp-not-in-album::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 0.85); pointer-events: none; z-index: 50; border-radius: inherit; }
+
+    /* Album Hover scrollable details overlay */
+    .gpd-album-hover-details {
+      position: absolute;
+      bottom: 6px;
+      left: 6px;
+      right: 6px;
+      height: 110px;
+      background: var(--gp-card-bg);
+      backdrop-filter: blur(10px) saturate(180%);
+      -webkit-backdrop-filter: blur(10px) saturate(180%);
+      border: 1px solid var(--gp-card-border);
+      border-radius: 8px;
+      padding: 8px;
+      color: var(--gp-card-text);
+      font-size: 11px;
+      font-family: "Google Sans", Roboto, sans-serif;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      z-index: 99999;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-sizing: border-box;
+      pointer-events: auto;
+    }
+    
+    .gpd-album-hover-details--show {
+      opacity: 1 !important;
+      transform: translateY(0) !important;
+    }
+
+    /* Style for scrollbar in album hover list */
+    .gpd-album-hover-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .gpd-album-hover-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .gpd-album-hover-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .gpd-album-hover-list::-webkit-scrollbar-thumb {
+      background: var(--gp-card-border);
+      border-radius: 2px;
+    }
   `;
   document.head.appendChild(style);
 
@@ -774,8 +828,55 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     const a = el.closest('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]');
     if (!a) return null;
     const href = a.getAttribute('href') || '';
+    if (href.includes('/photo/')) return null;
     const m = href.match(/\/(album|share|direct)\/([A-Za-z0-9_\-]+)/);
     return m ? m[2] : null;
+  }
+
+  function renderFileList(container, items) {
+    container.innerHTML = '';
+    if (!items || !items.length) {
+      const empty = document.createElement('div');
+      empty.textContent = '(no items found)';
+      empty.style.opacity = '0.5';
+      empty.style.textAlign = 'center';
+      empty.style.paddingTop = '10px';
+      container.appendChild(empty);
+      return;
+    }
+    items.forEach(item => {
+      const itemDiv = document.createElement('div');
+      Object.assign(itemDiv.style, {
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '8px'
+      });
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'gp-text';
+      nameSpan.title = item.filename;
+      nameSpan.textContent = item.filename;
+      Object.assign(nameSpan.style, {
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          flex: '1',
+          textAlign: 'left'
+      });
+
+      const sizeSpan = document.createElement('span');
+      sizeSpan.textContent = formatBytes(item.size);
+      Object.assign(sizeSpan.style, {
+          fontSize: '9px',
+          opacity: '0.7',
+          whiteSpace: 'nowrap'
+      });
+
+      itemDiv.appendChild(nameSpan);
+      itemDiv.appendChild(sizeSpan);
+      container.appendChild(itemDiv);
+    });
   }
 
   async function handleAlbumMouseEnter(e) {
@@ -783,185 +884,106 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     const key = extractAlbumKey(card);
     if (!key) return;
 
-    if (window.getComputedStyle(card).position === 'static') {
-        card.style.position = 'relative';
-    }
+    const imgContainer = card.querySelector('img')?.parentElement || card.firstElementChild || card;
 
-    let overlay = card.querySelector('.gpd-album-hover-details');
+    if (window.getComputedStyle(imgContainer).position === 'static') {
+        imgContainer.style.position = 'relative';
+    }
+    imgContainer.style.overflow = 'hidden';
+
+    let overlay = imgContainer.querySelector('.gpd-album-hover-details');
+    let listContainer;
+    let sizeText;
+
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.className = 'gpd-album-hover-details';
-        Object.assign(overlay.style, {
-            position: 'absolute',
-            top: '8px',
-            right: '8px',
-            zIndex: '99999',
-            background: 'var(--gp-card-bg)',
-            border: '1px solid var(--gp-card-border)',
-            borderRadius: '12px',
-            padding: '4px 8px',
-            color: 'var(--gp-card-text)',
-            fontSize: '11px',
-            fontFamily: '"Google Sans", Roboto, sans-serif',
-            fontWeight: '500',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-            transition: 'opacity 0.15s ease, transform 0.15s ease',
-            opacity: '0',
-            transform: 'translateY(-4px)'
+        
+        const header = document.createElement('div');
+        Object.assign(header.style, {
+            display: 'flex',
+            justifyContent: 'center',
+            fontWeight: '600',
+            borderBottom: '1px solid var(--gp-card-border)',
+            paddingBottom: '4px',
+            marginBottom: '4px'
         });
-        card.appendChild(overlay);
+        
+        sizeText = document.createElement('span');
+        sizeText.textContent = 'Loading size...';
+        
+        header.appendChild(sizeText);
+        overlay.appendChild(header);
+
+        listContainer = document.createElement('div');
+        listContainer.className = 'gpd-album-hover-list';
+        overlay.appendChild(listContainer);
+        
+        imgContainer.appendChild(overlay);
+    } else {
+        sizeText = overlay.querySelector('span');
+        listContainer = overlay.querySelector('.gpd-album-hover-list');
     }
 
     setTimeout(() => {
-        overlay.style.opacity = '1';
-        overlay.style.transform = 'translateY(0)';
+        overlay.classList.add('gpd-album-hover-details--show');
     }, 10);
 
     const cached = albumDetailsCache.get(key);
     if (cached) {
         if (cached.isLoading) {
-            overlay.textContent = `Loading...`;
+            sizeText.textContent = `Loading size...`;
         } else {
-            overlay.textContent = `${cached.count} items | ${formatBytes(cached.size)}`;
+            sizeText.textContent = formatBytes(cached.size);
+            renderFileList(listContainer, cached.items);
         }
         return;
     }
 
-    overlay.textContent = `Loading...`;
-    albumDetailsCache.set(key, { count: 0, size: 0, isLoading: true });
+    sizeText.textContent = `Loading size...`;
+    albumDetailsCache.set(key, { count: 0, size: 0, items: [], isLoading: true });
 
     try {
         const details = await fetchAlbumDetails(key, (fetched, total) => {
             if (card.matches(':hover')) {
-                overlay.textContent = `Loading... (${fetched}/${total})`;
+                sizeText.textContent = `Loading size... (${fetched}/${total})`;
             }
         });
-        albumDetailsCache.set(key, { count: details.count, size: details.size, isLoading: false });
+        albumDetailsCache.set(key, { count: details.count, size: details.size, items: details.items, isLoading: false });
         if (card.matches(':hover')) {
-            overlay.textContent = `${details.count} items | ${formatBytes(details.size)}`;
+            sizeText.textContent = formatBytes(details.size);
+            renderFileList(listContainer, details.items);
         }
     } catch (err) {
         console.error('Failed to load album details:', err);
-        overlay.textContent = `Error loading`;
+        sizeText.textContent = `Error loading`;
         albumDetailsCache.delete(key);
     }
   }
 
   function handleAlbumMouseLeave(e) {
     const card = e.currentTarget;
-    const overlay = card.querySelector('.gpd-album-hover-details');
+    const imgContainer = card.querySelector('img')?.parentElement || card.firstElementChild || card;
+    const overlay = imgContainer.querySelector('.gpd-album-hover-details');
     if (overlay) {
-        overlay.style.opacity = '0';
-        overlay.style.transform = 'translateY(-4px)';
+        overlay.classList.remove('gpd-album-hover-details--show');
         setTimeout(() => {
-            if (overlay.parentNode && overlay.style.opacity === '0') {
+            if (overlay.parentNode && !overlay.classList.contains('gpd-album-hover-details--show')) {
                 overlay.parentNode.removeChild(overlay);
             }
-        }, 160);
+        }, 200);
     }
   }
 
   function attachAlbumCardListeners() {
-    document.querySelectorAll('a[href*="/album/"], a[href*="/share/"]').forEach(card => {
+    document.querySelectorAll('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]').forEach(card => {
+      const href = card.getAttribute('href') || '';
+      if (href.includes('/photo/')) return;
       if (card.hasAttribute('data-gpd-album-attached')) return;
       card.setAttribute('data-gpd-album-attached', '1');
       card.addEventListener('mouseenter', handleAlbumMouseEnter);
       card.addEventListener('mouseleave', handleAlbumMouseLeave);
     });
-  }
-
-  /* =============================================================
-   *  6c. ALBUM DETAIL PAGE VIEW METADATA BADGE
-   * ============================================================= */
-  let currentAlbumKey = null;
-  let lastBadgeContainer = null;
-
-  async function checkAlbumPageAndAddBadge() {
-    const pathParts = window.location.pathname.split('/');
-    const shareIndex = pathParts.indexOf('share');
-    const albumIndex = pathParts.indexOf('album');
-    const directIndex = pathParts.indexOf('direct');
-    let albumMediaKey = null;
-    if (shareIndex !== -1 && shareIndex + 1 < pathParts.length) {
-        albumMediaKey = pathParts[shareIndex + 1];
-    } else if (albumIndex !== -1 && albumIndex + 1 < pathParts.length) {
-        albumMediaKey = pathParts[albumIndex + 1];
-    } else if (directIndex !== -1 && directIndex + 1 < pathParts.length) {
-        albumMediaKey = pathParts[directIndex + 1];
-    }
-
-    if (!albumMediaKey) {
-      currentAlbumKey = null;
-      if (lastBadgeContainer) {
-        lastBadgeContainer.remove();
-        lastBadgeContainer = null;
-      }
-      return;
-    }
-
-    if (currentAlbumKey === albumMediaKey) {
-      const existing = document.getElementById('gp-album-meta-badge');
-      if (!existing) {
-        renderAlbumHeaderBadge(albumMediaKey);
-      }
-      return;
-    }
-
-    currentAlbumKey = albumMediaKey;
-    renderAlbumHeaderBadge(albumMediaKey);
-  }
-
-  async function renderAlbumHeaderBadge(key) {
-    if (lastBadgeContainer) {
-      lastBadgeContainer.remove();
-      lastBadgeContainer = null;
-    }
-
-    const h1 = document.querySelector('h1');
-    if (!h1) return; // Header not loaded yet
-
-    const badge = document.createElement('span');
-    badge.id = 'gp-album-meta-badge';
-    badge.className = 'gp-album-meta-badge';
-    badge.textContent = 'Loading size...';
-    
-    Object.assign(badge.style, {
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      marginLeft: '16px',
-      padding: '4px 12px',
-      background: 'var(--gp-row-hover)',
-      border: '1px solid var(--gp-card-border)',
-      borderRadius: '16px',
-      color: 'var(--gp-card-text)',
-      fontSize: '12px',
-      fontFamily: '"Google Sans", Roboto, sans-serif',
-      fontWeight: '500',
-      verticalAlign: 'middle',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-      transition: 'opacity 0.2s ease'
-    });
-
-    h1.parentElement.appendChild(badge);
-    lastBadgeContainer = badge;
-
-    const cached = albumDetailsCache.get(key);
-    if (cached && !cached.isLoading) {
-      badge.textContent = `${cached.count} items | ${formatBytes(cached.size)}`;
-      return;
-    }
-
-    try {
-      albumDetailsCache.set(key, { count: 0, size: 0, isLoading: true });
-      const details = await fetchAlbumDetails(key);
-      albumDetailsCache.set(key, { count: details.count, size: details.size, isLoading: false });
-      badge.textContent = `${details.count} items | ${formatBytes(details.size)}`;
-    } catch (err) {
-      console.error('[GP-Master] Failed to load album details in album view:', err);
-      badge.textContent = 'Error loading size';
-      albumDetailsCache.delete(key);
-    }
   }
 
   /* =============================================================
@@ -1014,7 +1036,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     });
     document.querySelectorAll('.QcpS9c.ckGgle:not([data-gp-master-cb-attached])').forEach(attachCheckbox);
     attachAlbumCardListeners(); // Attach listeners to album cards
-    checkAlbumPageAndAddBadge(); // Check and render size badge in album details page
   }
 
   let scanTimer = null;
