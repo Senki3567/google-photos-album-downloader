@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.1
+// @version      3.2
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -454,6 +454,8 @@
     let fetchedItems = [];
     let isWorking = false;
     let lastAlbumKey = null;
+    const RPC_TIMEOUT_MS = 15000;
+    const RPC_MAX_ATTEMPTS = 2;
 
     function setButtonContent(button, iconPath, label) {
         const labelNode = document.createElement('span');
@@ -669,12 +671,13 @@
     }
 
     function startUrlListener() {
-        let lastUrl = '';
+        let lastUrl = location.href;
         updateThemeClass();
         handleUrlChange();
         setInterval(() => {
             updateThemeClass();
             if (location.href !== lastUrl) {
+                if (isWorking) return;
                 lastUrl = location.href;
                 handleUrlChange();
             }
@@ -763,29 +766,51 @@
         bodyParams.set('f.req', JSON.stringify([[payloadData]]));
         bodyParams.set('at', wizData['SNlM0e']);
 
-        const response = await fetch(`${baseUrl}?${params.toString()}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-            },
-            body: bodyParams.toString()
-        });
+        let lastError = null;
+        for (let attempt = 1; attempt <= RPC_MAX_ATTEMPTS; attempt++) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+            try {
+                const response = await fetch(`${baseUrl}?${params.toString()}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                    },
+                    body: bodyParams.toString(),
+                    signal: controller.signal
+                });
 
-        if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
-        }
-
-        const text = await response.text();
-        const lines = text.split('\n');
-        for (const line of lines) {
-            if (line.includes('wrb.fr')) {
-                const parsed = JSON.parse(line);
-                if (parsed[0] && parsed[0][2]) {
-                    return JSON.parse(parsed[0][2]);
+                if (!response.ok) {
+                    const error = new Error(`HTTP Error: ${response.status}`);
+                    error.retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+                    throw error;
                 }
+
+                const text = await response.text();
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    if (line.includes('wrb.fr')) {
+                        const parsed = JSON.parse(line);
+                        if (parsed[0] && parsed[0][2]) {
+                            return JSON.parse(parsed[0][2]);
+                        }
+                    }
+                }
+                throw new Error(`RPC ${rpcid} returned no usable payload`);
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    lastError = new Error(`RPC ${rpcid} timed out after ${RPC_TIMEOUT_MS}ms`);
+                    lastError.retryable = true;
+                } else {
+                    lastError = error;
+                }
+                if (attempt >= RPC_MAX_ATTEMPTS || lastError.retryable === false) break;
+                await new Promise(resolve => setTimeout(resolve, 350 * attempt));
+            } finally {
+                clearTimeout(timeoutId);
             }
         }
-        return null;
+        throw lastError || new Error(`RPC ${rpcid} failed`);
     }
 
     async function triggerSingleDownload(downloadUrl) {
@@ -872,15 +897,22 @@
         try {
             let albumItems = [];
             let nextPageId = null;
+            const seenPageIds = new Set();
 
             do {
                 const resData = await sendRpc('snAcKc', [albumMediaKey, nextPageId, null, authKey]);
-                if (!resData) break;
                 const pageItems = resData[1] || [];
                 albumItems.push(...pageItems.map(item => item[0]).filter(Boolean));
                 nextPageId = resData[2] || null;
+                if (nextPageId) {
+                    if (seenPageIds.has(nextPageId)) {
+                        throw new Error('Album pagination returned a repeated page token');
+                    }
+                    seenPageIds.add(nextPageId);
+                }
             } while (nextPageId);
 
+            albumItems = [...new Set(albumItems)];
             const total = albumItems.length;
             if (total === 0) {
                 setButtonLabel(scanBtn, 'Try again');
@@ -891,20 +923,39 @@
                 return;
             }
 
-            fetchedItems = albumItems.map(k => ({ mediaKey: k, downloadUrl: null }));
+            const previousUrls = new Map(fetchedItems.map(item => [item.mediaKey, item.downloadUrl]));
+            fetchedItems = albumItems.map(mediaKey => ({
+                mediaKey,
+                downloadUrl: previousUrls.get(mediaKey) || null
+            }));
             
             // Immediately resolve all download URLs
             await resolveAllDownloadUrls();
 
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
+            const failedCount = total - urls.length;
             if (urls.length === 0) {
                 setButtonLabel(scanBtn, 'Try again');
                 setPanelStatus('Could not create download links', 'Refresh Google Photos and try again.', 'error');
                 setProgress(100, 'error');
                 copyBtn.disabled = true;
                 downloadAllBtn.disabled = true;
+            } else if (failedCount > 0) {
+                setButtonLabel(scanBtn, `Retry ${failedCount} missing`);
+                setButtonLabel(copyBtn, `Copy ${urls.length} links`);
+                setButtonLabel(downloadAllBtn, `Download ${urls.length}`);
+                setPanelStatus(
+                    'Some links could not be created',
+                    `${urls.length} of ${total} links are ready. Retry to fetch the remaining ${failedCount}.`,
+                    'error'
+                );
+                setProgress(Math.round((urls.length / total) * 100), 'error');
+                copyBtn.disabled = false;
+                downloadAllBtn.disabled = false;
             } else {
                 setButtonLabel(scanBtn, 'Refresh links');
+                setButtonLabel(copyBtn, 'Copy links');
+                setButtonLabel(downloadAllBtn, 'Download all');
                 setPanelStatus('Links are ready', `${urls.length} original-quality links available.`, 'success');
                 setProgress(100, 'success');
                 copyBtn.disabled = false;

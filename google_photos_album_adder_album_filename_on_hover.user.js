@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.3.0
+// @version      1.4.0
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -51,6 +51,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   const PERSIST_NOT_IN_ALBUMS = true;
   const HIGHLIGHT_UNALBUMED = true; // Adds a red border to photos not in any albums
   const CACHE_TTL = 600000;
+  const RPC_TIMEOUT_MS = 15000;
+  const RPC_MAX_ATTEMPTS = 2;
 
   /* =============================================================
    *  2. SHARED STATE & HELPERS
@@ -91,6 +93,25 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   let activeHoveredAlbumCard = null;
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function withTimeout(promise, timeoutMs, label) {
+    let timeoutId;
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+  }
+  async function runWithRetry(operation, label, attempts = RPC_MAX_ATTEMPTS) {
+    let lastError;
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        return await withTimeout(Promise.resolve().then(operation), RPC_TIMEOUT_MS, label);
+      } catch (error) {
+        lastError = error;
+        if (attempt < attempts) await sleep(350 * attempt);
+      }
+    }
+    throw lastError || new Error(`${label} failed`);
+  }
   async function triggerSingleDownload(downloadUrl) {
     const iframe = document.createElement('iframe');
     iframe.style.display = 'none';
@@ -140,85 +161,128 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     bodyParams.set('f.req', JSON.stringify([[payloadData]]));
     bodyParams.set('at', wizData['SNlM0e']);
 
-    const response = await fetch(`${baseUrl}?${params.toString()}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        },
-        body: bodyParams.toString()
-    });
+    let lastError = null;
+    for (let attempt = 1; attempt <= RPC_MAX_ATTEMPTS; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), RPC_TIMEOUT_MS);
+      try {
+        const response = await fetch(`${baseUrl}?${params.toString()}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+            },
+            body: bodyParams.toString(),
+            signal: controller.signal
+        });
 
-    if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-    }
+        if (!response.ok) {
+            const error = new Error(`HTTP Error: ${response.status}`);
+            error.retryable = response.status === 408 || response.status === 429 || response.status >= 500;
+            throw error;
+        }
 
-    const text = await response.text();
-    const lines = text.split('\n');
-    for (const line of lines) {
-        if (line.includes('wrb.fr')) {
+        const text = await response.text();
+        const lines = text.split('\n');
+        for (const line of lines) {
+          if (line.includes('wrb.fr')) {
             const parsed = JSON.parse(line);
             if (parsed[0] && parsed[0][2]) {
-                return JSON.parse(parsed[0][2]);
+              return JSON.parse(parsed[0][2]);
             }
+          }
         }
+        throw new Error(`RPC ${rpcid} returned no usable payload`);
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          lastError = new Error(`RPC ${rpcid} timed out after ${RPC_TIMEOUT_MS}ms`);
+          lastError.retryable = true;
+        } else {
+          lastError = error;
+        }
+        if (attempt >= RPC_MAX_ATTEMPTS || lastError.retryable === false) break;
+        await sleep(350 * attempt);
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
-    return null;
+    throw lastError || new Error(`RPC ${rpcid} failed`);
   }
 
   // Fetch count and total file size for an album by its mediaKey
   async function fetchAlbumDetails(albumMediaKey, onProgress) {
     let mediaKeys = [];
     let nextPageId = null;
+    const seenPageIds = new Set();
+    const authKey = new URLSearchParams(window.location.search).get('key');
     do {
-      const resData = await sendRpc('snAcKc', [albumMediaKey, nextPageId, null, null]);
-      if (!resData) break;
+      const resData = await sendRpc('snAcKc', [albumMediaKey, nextPageId, null, authKey]);
       const pageItems = resData[1] || [];
       mediaKeys.push(...pageItems.map(item => item[0]).filter(Boolean));
       nextPageId = resData[2] || null;
+      if (nextPageId) {
+        if (seenPageIds.has(nextPageId)) {
+          throw new Error('Album pagination returned a repeated page token');
+        }
+        seenPageIds.add(nextPageId);
+      }
     } while (nextPageId);
 
+    mediaKeys = [...new Set(mediaKeys)];
     const totalCount = mediaKeys.length;
     if (totalCount === 0) return { count: 0, size: 0, items: [] };
 
     let completedCount = 0;
-    const batchPromises = [];
+    const failedBatches = [];
     const batchSize = 100;
+    const batchSpecs = [];
     for (let i = 0; i < mediaKeys.length; i += batchSize) {
-      const batchKeys = mediaKeys.slice(i, i + batchSize);
-      const keysPayload = batchKeys.map(k => [k]);
-      const emptyArray = Array(24).fill(null);
-      const extraEmptyArray = Array(10).fill(null);
-      const secondPart = [...emptyArray, [], ...extraEmptyArray, []];
-      
-      const p = sendRpc('EWgK9e', [[[keysPayload], [secondPart]]]).then(batchRes => {
-        const batchItems = [];
-        let batchTotalSize = 0;
-        const itemsData = batchRes && batchRes[0] ? batchRes[0][1] : [];
-        for (const itemData of itemsData) {
-          if (itemData && itemData[1]) {
-            const filename = itemData[1][3] || '(unknown)';
-            const size = itemData[1][9] || 0; // Index 9 is the file size in bytes
-            batchTotalSize += size;
-            batchItems.push({ filename, size });
-          }
-        }
-        completedCount += batchKeys.length;
-        if (onProgress) {
-          onProgress(completedCount, totalCount);
-        }
-        return { items: batchItems, size: batchTotalSize, index: i };
-      }).catch(err => {
-        console.error('Failed to fetch batch starting at ' + i, err);
-        completedCount += batchKeys.length;
-        if (onProgress) {
-          onProgress(completedCount, totalCount);
-        }
-        return { items: [], size: 0, index: i };
-      });
-      batchPromises.push(p);
+      batchSpecs.push({ index: i, keys: mediaKeys.slice(i, i + batchSize) });
     }
 
-    const results = await Promise.all(batchPromises);
+    const results = new Array(batchSpecs.length);
+    let nextBatchIndex = 0;
+    async function batchWorker() {
+      while (nextBatchIndex < batchSpecs.length) {
+        const slot = nextBatchIndex++;
+        const spec = batchSpecs[slot];
+        const keysPayload = spec.keys.map(k => [k]);
+        const emptyArray = Array(24).fill(null);
+        const extraEmptyArray = Array(10).fill(null);
+        const secondPart = [...emptyArray, [], ...extraEmptyArray, []];
+
+        try {
+          const batchRes = await sendRpc('EWgK9e', [[[keysPayload], [secondPart]]]);
+          const batchItems = [];
+          let batchTotalSize = 0;
+          const itemsData = batchRes && batchRes[0] ? batchRes[0][1] : [];
+          for (const itemData of itemsData) {
+            if (itemData && itemData[1]) {
+              const filename = itemData[1][3] || '(unknown)';
+              const size = itemData[1][9] || 0; // Index 9 is the file size in bytes
+              batchTotalSize += size;
+              batchItems.push({ filename, size });
+            }
+          }
+          if (batchItems.length !== spec.keys.length) {
+            throw new Error(`Batch returned ${batchItems.length}/${spec.keys.length} media records`);
+          }
+          results[slot] = { items: batchItems, size: batchTotalSize, index: spec.index };
+        } catch (err) {
+          console.error('Failed to fetch batch starting at ' + spec.index, err);
+          failedBatches.push({ index: spec.index, error: err });
+          results[slot] = { items: [], size: 0, index: spec.index };
+        } finally {
+          completedCount += spec.keys.length;
+          if (onProgress) onProgress(completedCount, totalCount);
+        }
+      }
+    }
+
+    const workerCount = Math.min(4, batchSpecs.length);
+    await Promise.all(Array.from({ length: workerCount }, () => batchWorker()));
+    if (failedBatches.length > 0) {
+      throw new Error(`${failedBatches.length} album metadata batch(es) failed`);
+    }
     results.sort((a, b) => a.index - b.index);
 
     let totalSize = 0;
@@ -876,6 +940,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   let filenamePrefetchTimer = null;
 
   const activeSharedRequests = new Map();
+  const hasFilenameMetadata = key => {
+    const cached = filenameCache.get(key);
+    return !!cached && typeof cached.filename === 'string' && cached.filename !== '(unknown)';
+  };
 
   function updateTileVisuals(key, albumCount) {
     if (!HIGHLIGHT_UNALBUMED || !key) return;
@@ -925,10 +993,14 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
 
     const req = (async () => {
       try {
-        const info = await unsafeWindow.gptkApi.getItemInfoExt(key);
+        const info = await runWithRetry(
+          () => unsafeWindow.gptkApi.getItemInfoExt(key),
+          `getItemInfoExt(${key})`
+        );
         const fn = info?.fileName || info?.filename || info?.originalFilename || '(unknown)';
         const sz = info?.size || info?.fileSize || info?.sizeBytes || info?.bytes || info?.spaceTaken || info?.space_taken || null;
-        filenameCache.set(key, { filename: fn, size: sz });
+        const current = filenameCache.get(key) || {};
+        filenameCache.set(key, { ...current, filename: fn, size: sz });
 
         const albums = info?.albums || info?.albumInfos || info?.collections || info?.containers || [];
         const names = Array.isArray(albums) ? albums.map(a => ({
@@ -943,9 +1015,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         return { names, filename: fn, size: sz };
       } catch (e) {
         console.warn('[GP-Master] Shared fetch failed', e);
-        if (!filenameCache.has(key)) filenameCache.set(key, { filename: '(unknown)', size: null });
-        if (!albumCache.has(key)) albumCache.set(key, { names: [], time: Date.now() });
-        return { names: [], filename: '(unknown)', size: null };
+        throw e;
       } finally {
         activeSharedRequests.delete(key);
       }
@@ -959,21 +1029,24 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     while (albumPrefetchQueue.size > 0 && activeAlbumPrefetches < 4) {
       const key = albumPrefetchQueue.values().next().value;
       albumPrefetchQueue.delete(key);
+      if (activeSharedRequests.has(key)) continue;
       const cachedAlb = albumCache.get(key);
       if (!cachedAlb || Date.now() - cachedAlb.time > CACHE_TTL) {
         activeAlbumPrefetches++;
         log(`Prefetching album info for: ${key}`);
-        fetchSharedExtInfo(key).finally(() => {
-          activeAlbumPrefetches--;
-          processAlbumPrefetchQueue();
-        });
+        fetchSharedExtInfo(key)
+          .catch(error => console.warn('[GP-Master] Album prefetch failed for', key, error))
+          .finally(() => {
+            activeAlbumPrefetches--;
+            processAlbumPrefetchQueue();
+          });
         await sleep(40);
       }
     }
   }
 
   function queueFilenameForPrefetch(key) {
-    if (!key || filenameCache.has(key)) return;
+    if (!key || hasFilenameMetadata(key)) return;
     filenamePrefetchQueue.add(key);
     if (filenamePrefetchTimer) clearTimeout(filenamePrefetchTimer);
     filenamePrefetchTimer = setTimeout(flushFilenamePrefetchQueue, 150);
@@ -985,19 +1058,23 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     filenamePrefetchQueue.clear();
     log(`Flushing bulk filename prefetch for ${keysToFetch.length} items`);
     try {
-      const results = await unsafeWindow.gptkApi.getBatchMediaInfo(keysToFetch);
+      const results = await runWithRetry(
+        () => unsafeWindow.gptkApi.getBatchMediaInfo(keysToFetch),
+        `getBatchMediaInfo(${keysToFetch.length})`
+      );
       if (Array.isArray(results)) {
         results.forEach(info => {
           if (info && info.mediaKey) {
             const sz = info.size || info.fileSize || info.sizeBytes || info.bytes || info.spaceTaken || info.space_taken || null;
+            const current = filenameCache.get(info.mediaKey) || {};
             filenameCache.set(info.mediaKey, {
+              ...current,
               filename: info.fileName || info.filename || info.originalFilename || '(unknown)',
               size: sz
             });
           }
         });
       }
-      keysToFetch.forEach(k => { if (!filenameCache.has(k)) filenameCache.set(k, { filename: '(unknown)', size: null }); });
     } catch (e) { console.warn('[GP-Master] Bulk fetch failed', e); }
   }
 
@@ -1013,7 +1090,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         } else {
           updateTileVisuals(key, cachedAlb.names.length);
         }
-        if (!filenameCache.has(key)) queueFilenameForPrefetch(key);
+        if (!hasFilenameMetadata(key)) queueFilenameForPrefetch(key);
       } else {
         albumPrefetchQueue.delete(key);
       }
@@ -1204,7 +1281,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       // Check Cache
       const cachedAlb = albumCache.get(key);
       const hasAlb = cachedAlb && (Date.now() - cachedAlb.time < CACHE_TTL);
-      const hasFn = filenameCache.has(key);
+      const hasFn = hasFilenameMetadata(key);
 
       let names = hasAlb ? cachedAlb.names : [];
       let cachedFn = hasFn ? filenameCache.get(key) : { filename: '(unknown)', size: null };
@@ -1228,6 +1305,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         size = res.size;
       }
 
+      if (tile.getAttribute('data-gp-media-key') !== key) return;
       fnText.textContent = filename;
       fnSize.textContent = size ? formatBytes(size) : '';
 
@@ -1289,6 +1367,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       }
     } catch (err) {
       log('Error during showHoverUI:', err);
+      const hoverCard = tile?.querySelector('.gp-hover-card');
+      const fnText = hoverCard?.querySelector('.gp-filename-row .gp-text');
+      if (fnText) fnText.textContent = 'Could not load file details';
+      toast('Could not load file details. Hover again to retry.', { tone: 'error' });
     }
   }
 
@@ -1423,7 +1505,11 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         overlay.classList.add('gpd-album-hover-details--show');
     }, 10);
 
-    const cached = albumDetailsCache.get(key);
+    let cached = albumDetailsCache.get(key);
+    if (cached && !cached.isLoading && Date.now() - cached.time > CACHE_TTL) {
+        albumDetailsCache.delete(key);
+        cached = null;
+    }
     if (cached) {
         if (cached.isLoading) {
             sizeText.textContent = 'Loading album details…';
@@ -1435,16 +1521,22 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
 
     sizeText.textContent = 'Loading album details…';
-    albumDetailsCache.set(key, { count: 0, size: 0, items: [], isLoading: true });
+    albumDetailsCache.set(key, { count: 0, size: 0, items: [], isLoading: true, time: Date.now() });
 
     try {
         const details = await fetchAlbumDetails(key, (fetched, total) => {
-            if (card.matches(':hover, :focus-within')) {
+            if (extractAlbumKey(card) === key && card.matches(':hover, :focus-within')) {
                 sizeText.textContent = `Loading album details · ${fetched}/${total}`;
             }
         });
-        albumDetailsCache.set(key, { count: details.count, size: details.size, items: details.items, isLoading: false });
-        if (card.matches(':hover, :focus-within')) {
+        albumDetailsCache.set(key, {
+            count: details.count,
+            size: details.size,
+            items: details.items,
+            isLoading: false,
+            time: Date.now()
+        });
+        if (extractAlbumKey(card) === key && card.matches(':hover, :focus-within')) {
             sizeText.textContent = `${details.count} items · ${formatBytes(details.size)}`;
             renderFileList(listContainer, details.items);
         }
@@ -1511,6 +1603,9 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         const currentKey = extractMediaKey(tile);
         const oldKey = tile.getAttribute('data-gp-media-key');
         if (currentKey && currentKey !== oldKey) {
+          tile.querySelector('.gp-hover-card')?.remove();
+          tile._gpIsHovered = false;
+          if (activeHoveredTile === tile) activeHoveredTile = null;
           tile.setAttribute('data-gp-media-key', currentKey);
           tile.classList.remove('gp-not-in-album');
           const cachedAlb = albumCache.get(currentKey);
@@ -1676,6 +1771,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   const triggerCacheClear = () => {
     log('Album update detected! Clearing cache...');
     albumCache.clear();
+    albumDetailsCache.clear();
     qsa('.gp-not-in-album').forEach(el => el.classList.remove('gp-not-in-album'));
     qsa('.RY3tic[data-gp-master-attached]').forEach(tile => {
       visibleObserver.unobserve(tile);
@@ -1687,6 +1783,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     cacheClearTimer = setTimeout(() => {
       log('Secondary cache clear to handle Google backend delay.');
       albumCache.clear();
+      albumDetailsCache.clear();
 
       qsa('.gp-not-in-album').forEach(el => el.classList.remove('gp-not-in-album'));
       qsa('.RY3tic[data-gp-master-attached]').forEach(tile => {
