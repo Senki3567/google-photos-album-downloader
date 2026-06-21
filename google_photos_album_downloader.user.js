@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      2.1
-// @description  Streamlined one-click button downloader for Google Photos Albums (Trusted Types & CSP Safe)
+// @version      2.3
+// @description  Streamlined circular button downloader with Material Design icons for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
 // @match        *://photos.google.com/*
@@ -20,43 +20,112 @@
 
     console.log('[GP Downloader] Userscript injected.');
 
+    // Material Design SVG Paths
+    const PATH_DOWNLOAD = "M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z";
+    const PATH_CHECK = "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
+    const PATH_ERROR = "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
+
+    // Helper to create SVG programmatically (avoids Trusted Types innerHTML issues)
+    function createSvgIcon(pathD) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("width", "20");
+        svg.setAttribute("height", "20");
+        svg.setAttribute("fill", "currentColor");
+        
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", pathD);
+        svg.appendChild(path);
+        
+        return svg;
+    }
+
     // Inject CSS
     const style = document.createElement('style');
     style.textContent = `
+        /* Theme Variables */
+        body {
+            --gp-btn-bg: #e3e3e3;
+            --gp-btn-hover: #c7c7c7;
+            --gp-btn-text: #1f1f1f;
+            --gp-card-border: rgba(0, 0, 0, 0.12);
+        }
+        body.gp-dark-mode {
+            --gp-btn-bg: #3c4043 !important;
+            --gp-btn-hover: #5f6368 !important;
+            --gp-btn-text: #ffffff !important;
+            --gp-card-border: rgba(255, 255, 255, 0.12) !important;
+        }
+        body.gp-light-mode {
+            --gp-btn-bg: #e3e3e3 !important;
+            --gp-btn-hover: #c7c7c7 !important;
+            --gp-btn-text: #1f1f1f !important;
+            --gp-card-border: rgba(0, 0, 0, 0.12) !important;
+        }
+
         #gpd-download-btn {
             position: fixed;
             bottom: 24px;
             left: 24px;
             z-index: 999999;
-            padding: 10px 20px;
-            border-radius: 20px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
             font-family: "Google Sans", Roboto, sans-serif;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 500;
-            border: none;
+            border: 1px solid var(--gp-card-border);
             box-shadow: 0 4px 16px rgba(0,0,0,0.3);
             transition: all 0.2s ease;
             display: none;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            background: #1a73e8;
-            color: #ffffff;
+            background: var(--gp-btn-bg); /* Always neutral theme gray during idle, scan, download */
+            color: var(--gp-btn-text);
         }
         #gpd-download-btn:hover:not(:disabled) {
-            background: #1557b0;
+            background: var(--gp-btn-hover);
             transform: translateY(-1px);
         }
         #gpd-download-btn:active:not(:disabled) {
             transform: translateY(0);
         }
         #gpd-download-btn:disabled {
-            background: #3c4043;
-            color: #9aa0a6;
             cursor: default;
+        }
+        #gpd-download-btn.gpd-completed {
+            background: #137333 !important; /* Green success fill on completion */
+            border-color: #137333 !important;
+            color: #ffffff !important;
+        }
+        #gpd-download-btn.gpd-error {
+            background: #ea4335 !important; /* Red error fill */
+            border-color: #ea4335 !important;
+            color: #ffffff !important;
         }
     `;
     document.head.appendChild(style);
+
+    // Resolve and update theme classes dynamically based on body text color
+    function updateThemeClass() {
+        try {
+            const bodyColor = window.getComputedStyle(document.body).color || '';
+            const rgb = bodyColor.match(/\d+/g);
+            if (rgb && rgb.length >= 3) {
+                const isDark = (parseInt(rgb[0]) > 130 && parseInt(rgb[1]) > 130 && parseInt(rgb[2]) > 130);
+                if (isDark) {
+                    document.body.classList.add('gp-dark-mode');
+                    document.body.classList.remove('gp-light-mode');
+                } else {
+                    document.body.classList.add('gp-light-mode');
+                    document.body.classList.remove('gp-dark-mode');
+                }
+            }
+        } catch (e) {
+            console.warn('[GP-Theme] Failed to resolve theme color', e);
+        }
+    }
 
     let downloadBtn;
     let albumMediaKey = null;
@@ -68,7 +137,7 @@
 
         downloadBtn = document.createElement('button');
         downloadBtn.id = 'gpd-download-btn';
-        downloadBtn.textContent = 'Download Album';
+        downloadBtn.replaceChildren(createSvgIcon(PATH_DOWNLOAD));
         document.body.appendChild(downloadBtn);
 
         downloadBtn.addEventListener('click', startDownloadWorkflow);
@@ -78,8 +147,10 @@
 
     function startUrlListener() {
         let lastUrl = '';
+        updateThemeClass();
         handleUrlChange();
         setInterval(() => {
+            updateThemeClass();
             if (location.href !== lastUrl) {
                 lastUrl = location.href;
                 handleUrlChange();
@@ -113,7 +184,8 @@
             if (downloadBtn) {
                 downloadBtn.style.display = 'flex';
                 downloadBtn.disabled = false;
-                downloadBtn.textContent = 'Download Album';
+                downloadBtn.classList.remove('gpd-completed', 'gpd-error');
+                downloadBtn.replaceChildren(createSvgIcon(PATH_DOWNLOAD));
             }
         } else {
             if (downloadBtn) {
@@ -185,7 +257,7 @@
 
         isDownloading = true;
         downloadBtn.disabled = true;
-        downloadBtn.textContent = 'Scanning...';
+        downloadBtn.textContent = '...';
 
         try {
             let albumItems = [];
@@ -201,12 +273,12 @@
 
             const total = albumItems.length;
             if (total === 0) {
-                downloadBtn.textContent = 'Empty Album';
+                downloadBtn.textContent = '0';
                 setTimeout(resetState, 2000);
                 return;
             }
 
-            downloadBtn.textContent = `Downloading (0/${total})`;
+            downloadBtn.textContent = '0%';
 
             let completed = 0;
             const concurrencyLimit = 3;
@@ -234,7 +306,8 @@
                                 console.error('Failed to download item:', mediaKey, e);
                             } finally {
                                 completed++;
-                                downloadBtn.textContent = `Downloading (${completed}/${total})`;
+                                const percent = Math.round((completed / total) * 100);
+                                downloadBtn.textContent = `${percent}%`;
                                 if (completed === total) {
                                     resolve();
                                 } else {
@@ -247,18 +320,21 @@
                 next();
             });
 
-            downloadBtn.textContent = 'Completed!';
+            downloadBtn.classList.add('gpd-completed');
+            downloadBtn.replaceChildren(createSvgIcon(PATH_CHECK));
             setTimeout(resetState, 3000);
 
         } catch (error) {
             console.error('Download error:', error);
-            downloadBtn.textContent = 'Error!';
+            downloadBtn.classList.add('gpd-error');
+            downloadBtn.replaceChildren(createSvgIcon(PATH_ERROR));
             setTimeout(resetState, 4000);
         }
     }
 
     function resetState() {
         isDownloading = false;
+        downloadBtn.classList.remove('gpd-completed', 'gpd-error');
         handleUrlChange();
     }
 

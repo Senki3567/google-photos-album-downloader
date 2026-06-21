@@ -56,6 +56,26 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
    *  2. SHARED STATE & HELPERS
    * ============================================================= */
   let hasApi = false;
+  // Resolve and update theme classes dynamically based on body text color
+  function updateThemeClass() {
+    try {
+      const bodyColor = window.getComputedStyle(document.body).color || '';
+      const rgb = bodyColor.match(/\d+/g);
+      if (rgb && rgb.length >= 3) {
+        const isDark = (parseInt(rgb[0]) > 130 && parseInt(rgb[1]) > 130 && parseInt(rgb[2]) > 130);
+        if (isDark) {
+          document.body.classList.add('gp-dark-mode');
+          document.body.classList.remove('gp-light-mode');
+        } else {
+          document.body.classList.add('gp-light-mode');
+          document.body.classList.remove('gp-dark-mode');
+        }
+      }
+    } catch (e) {
+      console.warn('[GP-Theme] Failed to resolve theme color', e);
+    }
+  }
+
   const albumCache = new Map();
   const filenameCache = new Map();
   const albumDetailsCache = new Map(); // mediaKey -> { count, size, isLoading }
@@ -186,19 +206,51 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
    * ============================================================= */
   const style = document.createElement('style');
   style.textContent = `
+
+    /* Theme Variables for light/dark compatibility */
+    body {
+      --gp-card-bg: rgba(255, 255, 255, 0.92);
+      --gp-card-text: #1f1f1f;
+      --gp-card-border: rgba(0, 0, 0, 0.12);
+      --gp-row-hover: rgba(0, 0, 0, 0.06);
+      --gp-text-dim: #c53929;
+      --gp-link-color: #0b57d0;
+      --gp-link-hover: #1557b0;
+    }
+    
+    body.gp-dark-mode {
+      --gp-card-bg: rgba(30, 30, 30, 0.85) !important;
+      --gp-card-text: #ffffff !important;
+      --gp-card-border: rgba(255, 255, 255, 0.12) !important;
+      --gp-row-hover: rgba(255, 255, 255, 0.1) !important;
+      --gp-text-dim: #ff8a80 !important;
+      --gp-link-color: #8ab4f8 !important;
+      --gp-link-hover: #aecbfa !important;
+    }
+    
+    body.gp-light-mode {
+      --gp-card-bg: rgba(255, 255, 255, 0.92) !important;
+      --gp-card-text: #1f1f1f !important;
+      --gp-card-border: rgba(0, 0, 0, 0.12) !important;
+      --gp-row-hover: rgba(0, 0, 0, 0.06) !important;
+      --gp-text-dim: #c53929 !important;
+      --gp-link-color: #0b57d0 !important;
+      --gp-link-hover: #1557b0 !important;
+    }
+
     /* Unified Premium Hover Card */
     .gp-hover-card {
       position: absolute;
       left: 6px;
       right: 6px;
       bottom: 6px;
-      background: rgba(20, 20, 20, 0.85);
+      background: var(--gp-card-bg);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border: 1px solid var(--gp-card-border);
       border-radius: 8px;
       padding: 6px 8px;
-      color: #ffffff;
+      color: var(--gp-card-text);
       font-size: 11px;
       font-family: "Google Sans", Roboto, sans-serif;
       display: flex;
@@ -209,7 +261,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       opacity: 0;
       transform: translateY(6px);
       transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     .gp-hover-card--show {
       opacity: 1;
@@ -225,7 +277,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       transition: background 0.15s ease, color 0.15s ease;
     }
     .gp-hover-row:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--gp-row-hover);
     }
     
     .gp-hover-row .gp-text {
@@ -687,7 +739,9 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
             albRow.onclick = (evt) => {
               evt.preventDefault();
               evt.stopPropagation();
-              window.location.href = `/album/${a.mediaKey}`;
+              const uMatch = window.location.pathname.match(/^\/u\/\d+/);
+              const uPrefix = uMatch ? uMatch[0] : '';
+              window.location.href = `${uPrefix}/album/${a.mediaKey}`;
             };
 
             hoverCard.appendChild(albRow);
@@ -742,11 +796,11 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
             top: '8px',
             right: '8px',
             zIndex: '99999',
-            background: 'rgba(20, 20, 20, 0.9)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            background: 'var(--gp-card-bg)',
+            border: '1px solid var(--gp-card-border)',
             borderRadius: '12px',
             padding: '4px 8px',
-            color: '#ffffff',
+            color: 'var(--gp-card-text)',
             fontSize: '11px',
             fontFamily: '"Google Sans", Roboto, sans-serif',
             fontWeight: '500',
@@ -877,10 +931,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       gap: '6px',
       marginLeft: '16px',
       padding: '4px 12px',
-      background: 'rgba(128,128,128,0.15)',
-      border: '1px solid rgba(128,128,128,0.2)',
+      background: 'var(--gp-row-hover)',
+      border: '1px solid var(--gp-card-border)',
       borderRadius: '16px',
-      color: '#e8eaed',
+      color: 'var(--gp-card-text)',
       fontSize: '12px',
       fontFamily: '"Google Sans", Roboto, sans-serif',
       fontWeight: '500',
@@ -937,6 +991,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   }
 
   function scan() {
+    updateThemeClass();
     document.querySelectorAll('.RY3tic').forEach(tile => {
       if (!tile.hasAttribute('data-gp-master-attached')) {
         attachTile(tile);
