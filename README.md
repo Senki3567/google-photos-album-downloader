@@ -24,9 +24,7 @@ A lightweight, premium, and secure Tampermonkey userscript to retrieve and downl
 1. Make sure you have a Userscript Manager installed (e.g., [Tampermonkey](https://www.tampermonkey.net/) or [Violentmonkey](https://violentmonkey.github.io/)).
 2. Click the badge below to install directly:
 
-[![Install directly](https://img.shields.io/badge/Install-Tampermonkey-green?style=for-the-badge&logo=tampermonkey)](https://github.com/<your-github-username>/<your-repo-name>/raw/main/google_photos_album_downloader.user.js)
-
-*(Note: Replace `<your-github-username>` and `<your-repo-name>` with your actual GitHub username and repository name after publishing to make this button active.)*
+[![Install directly](https://img.shields.io/badge/Install-Tampermonkey-green?style=for-the-badge&logo=tampermonkey)](https://github.com/Senki3567/google-photos-album-downloader/raw/main/google_photos_album_downloader.user.js)
 
 ### Manual Install
 
@@ -69,9 +67,7 @@ Userscript Tampermonkey siêu nhẹ, mượt mà và bảo mật giúp lấy lin
 1. Đảm bảo bạn đã cài đặt tiện ích quản lý Userscript (ví dụ: [Tampermonkey](https://www.tampermonkey.net/) hoặc [Violentmonkey](https://violentmonkey.github.io/)).
 2. Nhấp vào nút dưới đây để cài đặt trực tiếp:
 
-[![Cài đặt trực tiếp](https://img.shields.io/badge/Cài_Đặt-Tampermonkey-green?style=for-the-badge&logo=tampermonkey)](https://github.com/<your-github-username>/<your-repo-name>/raw/main/google_photos_album_downloader.user.js)
-
-*(Lưu ý: Thay thế `<your-github-username>` và `<your-repo-name>` bằng Tên tài khoản GitHub và Tên kho lưu trữ thực tế của bạn sau khi đăng tải lên GitHub để nút này hoạt động chính xác).*
+[![Cài đặt trực tiếp](https://img.shields.io/badge/Cài_Đặt-Tampermonkey-green?style=for-the-badge&logo=tampermonkey)](https://github.com/Senki3567/google-photos-album-downloader/raw/main/google_photos_album_downloader.user.js)
 
 ### Cài Đặt Thủ Công
 
