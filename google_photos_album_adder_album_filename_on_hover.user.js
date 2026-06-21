@@ -50,14 +50,18 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   const HOTKEY_RECALL = { key: 'W', shift: true,   alt: false, ctrl: false, meta: false };
   const PERSIST_NOT_IN_ALBUMS = true;
   const HIGHLIGHT_UNALBUMED = true; // Adds a red border to photos not in any albums
-  const CACHE_TTL = 60000;
+  const CACHE_TTL = 600000;
 
   /* =============================================================
    *  2. SHARED STATE & HELPERS
    * ============================================================= */
   let hasApi = false;
+  let lastThemeCheck = 0;
   // Resolve and update theme classes dynamically based on body text color
   function updateThemeClass() {
+    const now = Date.now();
+    if (now - lastThemeCheck < 5000) return; // Only check theme color at most once every 5 seconds
+    lastThemeCheck = now;
     try {
       const bodyColor = window.getComputedStyle(document.body).color || '';
       const rgb = bodyColor.match(/\d+/g);
@@ -77,10 +81,27 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   }
 
   const albumCache = new Map();
+  const SVG_LINK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>';
+  const SVG_CHECK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+  const SVG_DOWNLOAD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>';
+  const SVG_ADD_ALBUM = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
   const filenameCache = new Map();
   const albumDetailsCache = new Map(); // mediaKey -> { count, size, isLoading }
+  let activeHoveredTile = null;
+  let activeHoveredAlbumCard = null;
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+  async function triggerSingleDownload(downloadUrl) {
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = downloadUrl;
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      if (iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
+      }
+    }, 10000);
+  }
   const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
   const visible = el => el && el.offsetParent !== null;
   const log = (...a) => console.log('%c[GP-Master]', 'color: #3b82f6; font-weight: bold;', ...a);
@@ -159,30 +180,52 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     const totalCount = mediaKeys.length;
     if (totalCount === 0) return { count: 0, size: 0, items: [] };
 
-    let totalSize = 0;
+    let completedCount = 0;
+    const batchPromises = [];
     const batchSize = 100;
-    const items = [];
     for (let i = 0; i < mediaKeys.length; i += batchSize) {
-      if (onProgress) {
-        onProgress(i, totalCount);
-      }
       const batchKeys = mediaKeys.slice(i, i + batchSize);
-      
       const keysPayload = batchKeys.map(k => [k]);
       const emptyArray = Array(24).fill(null);
       const extraEmptyArray = Array(10).fill(null);
       const secondPart = [...emptyArray, [], ...extraEmptyArray, []];
       
-      const batchRes = await sendRpc('EWgK9e', [[[keysPayload], [secondPart]]]);
-      const itemsData = batchRes && batchRes[0] ? batchRes[0][1] : [];
-      for (const itemData of itemsData) {
-        if (itemData && itemData[1]) {
-          const filename = itemData[1][3] || '(unknown)';
-          const size = itemData[1][9] || 0; // Index 9 is the file size in bytes
-          totalSize += size;
-          items.push({ filename, size });
+      const p = sendRpc('EWgK9e', [[[keysPayload], [secondPart]]]).then(batchRes => {
+        const batchItems = [];
+        let batchTotalSize = 0;
+        const itemsData = batchRes && batchRes[0] ? batchRes[0][1] : [];
+        for (const itemData of itemsData) {
+          if (itemData && itemData[1]) {
+            const filename = itemData[1][3] || '(unknown)';
+            const size = itemData[1][9] || 0; // Index 9 is the file size in bytes
+            batchTotalSize += size;
+            batchItems.push({ filename, size });
+          }
         }
-      }
+        completedCount += batchKeys.length;
+        if (onProgress) {
+          onProgress(completedCount, totalCount);
+        }
+        return { items: batchItems, size: batchTotalSize, index: i };
+      }).catch(err => {
+        console.error('Failed to fetch batch starting at ' + i, err);
+        completedCount += batchKeys.length;
+        if (onProgress) {
+          onProgress(completedCount, totalCount);
+        }
+        return { items: [], size: 0, index: i };
+      });
+      batchPromises.push(p);
+    }
+
+    const results = await Promise.all(batchPromises);
+    results.sort((a, b) => a.index - b.index);
+
+    let totalSize = 0;
+    const items = [];
+    for (const res of results) {
+      items.push(...res.items);
+      totalSize += res.size;
     }
     
     return { count: totalCount, size: totalSize, items };
@@ -196,12 +239,40 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
 
   function extractMediaKey(el) {
     if (!el) return null;
-    const a = el.closest('a[href*="/photo/"]') || el.parentElement?.querySelector('a[href*="/photo/"]');
-    const m = a?.getAttribute('href')?.match(/\/photo\/([A-Za-z0-9_\-]+)/);
-    if (m) return m[1];
+    
+    let a = el._gpLinkEl;
+    if (!a || !el.contains(a)) {
+      a = el.querySelector('a[href*="/photo/"]') || el.closest('a[href*="/photo/"]') || el.parentElement?.querySelector('a[href*="/photo/"]') || null;
+      if (a) el._gpLinkEl = a;
+    }
+    
+    if (a) {
+      const href = a.getAttribute('href') || '';
+      if (el._gpLastHref === href) {
+        return el._gpLastKey;
+      }
+      const m = href.match(/\/photo\/([A-Za-z0-9_\-]+)/);
+      if (m) {
+        el._gpLastHref = href;
+        el._gpLastKey = m[1];
+        return m[1];
+      }
+    }
+    
     const bg = el.style?.backgroundImage || '';
-    const n = bg.match(/(AF1Qip|AP1Gcz)[A-Za-z0-9_\-]+/);
-    return n ? n[0] : null;
+    if (bg) {
+      if (el._gpLastBg === bg) {
+        return el._gpLastBgKey;
+      }
+      const n = bg.match(/(AF1Qip|AP1Gcz)[A-Za-z0-9_\-]+/);
+      if (n) {
+        el._gpLastBg = bg;
+        el._gpLastBgKey = n[0];
+        return n[0];
+      }
+    }
+    
+    return null;
   }
 
   /* =============================================================
@@ -259,8 +330,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       display: flex;
       flex-direction: column;
       gap: 4px;
-      z-index: 100000;
       pointer-events: auto;
+      z-index: 10;
       opacity: 0;
       transform: translateY(6px);
       transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -306,15 +377,15 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
 
     /* Un-albumed Highlight */
-    .gp-not-in-album::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 0.85); pointer-events: none; z-index: 50; border-radius: inherit; }
+    .gp-not-in-album::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 0.85); pointer-events: none; border-radius: inherit; }
 
     /* Album Hover scrollable details overlay */
     .gpd-album-hover-details {
       position: absolute;
+      top: 56px;
       bottom: 6px;
       left: 6px;
       right: 6px;
-      height: 110px;
       background: var(--gp-card-bg);
       backdrop-filter: blur(10px) saturate(180%);
       -webkit-backdrop-filter: blur(10px) saturate(180%);
@@ -327,7 +398,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       display: flex;
       flex-direction: column;
-      z-index: 99999;
+      z-index: 10;
       opacity: 0;
       transform: translateY(6px);
       transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -357,6 +428,55 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     .gpd-album-hover-list::-webkit-scrollbar-thumb {
       background: var(--gp-card-border);
       border-radius: 2px;
+    }
+
+    /* Floating toolbar container positioned above the hover card on the right */
+    .gp-toolbar-container {
+      position: absolute;
+      top: -34px;
+      right: 2px;
+      display: flex;
+      gap: 6px;
+      z-index: 11;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .gp-hover-card--show .gp-toolbar-container {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    /* Toolbar Action Buttons (Glassmorphism circular buttons) */
+    .gp-toolbar-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92); /* Glassmorphism light background */
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      color: #1f1f1f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+    }
+    body.gp-dark-mode .gp-toolbar-btn {
+      background: rgba(45, 45, 45, 0.9) !important; /* Glassmorphism dark background */
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff;
+    }
+    .gp-toolbar-btn:hover {
+      background: rgba(240, 240, 240, 0.95);
+      transform: scale(1.05);
+      border-color: rgba(0, 0, 0, 0.2);
+    }
+    body.gp-dark-mode .gp-toolbar-btn:hover {
+      background: rgba(70, 70, 70, 0.95) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
     }
   `;
   document.head.appendChild(style);
@@ -409,32 +529,67 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   const saveSel = () => localStorage.setItem('gp_last_selection_ids', JSON.stringify(getSel().map(checkboxKey)));
   const loadSel = () => JSON.parse(localStorage.getItem('gp_last_selection_ids') || '[]');
   const isInViewer = () => qsa('button[aria-label="Open info"],button[aria-label="Info"]').some(b => b.offsetParent);
-  const isAddModal = () => qsa('div[jsshadow],div[role="dialog"]').some(d => /Search albums/i.test(d.textContent || ''));
+  const isAddModal = () => qsa('div[jsshadow],div[role="dialog"]').some(d => /Search albums|Tìm kiếm album|album/i.test(d.textContent || ''));
   const findVisible = arr => arr.find(e => e && visible(e));
 
   async function addInViewer() {
-    const more = findVisible(qsa('button[aria-label="More options"]'));
-    if (!more) throw Error('More options not found');
+    const more = findVisible(qsa('button[aria-label="More options"], button[aria-label="Tùy chọn khác"], button[aria-label*="option" i]'));
+    if (!more) throw Error('More options button not found');
     ['pointerdown', 'mouseup', 'click'].forEach(t => more.dispatchEvent(new MouseEvent(t, { bubbles: true, composed: true, cancelable: true })));
+    
     let item = null;
-    for (let i = 0; i < 10; i++) { await sleep(60); item = qsa('[role="menuitem"]').find(e => /Add to album/i.test(e.textContent || '')); if (item) break; }
-    if (!item) throw Error('"Add to album" not found');
+    for (let i = 0; i < 20; i++) {
+      await sleep(80);
+      item = qsa('[role="menuitem"]').find(e => /Add to album|Thêm vào album|album/i.test(e.textContent || ''));
+      if (item) break;
+    }
+    if (!item) throw Error('"Add to album" entry not found');
+    
     ['pointerdown', 'mouseup', 'click'].forEach(t => item.dispatchEvent(new MouseEvent(t, { bubbles: true, composed: true, cancelable: true })));
-    for (let i = 0; i < 12; i++) { await sleep(60); if (isAddModal()) break; }
-    findVisible(qsa('input[placeholder="Search albums"]'))?.focus({ preventScroll: true });
+    
+    for (let i = 0; i < 20; i++) {
+      await sleep(80);
+      if (isAddModal()) break;
+    }
+    findVisible(qsa('input[placeholder="Search albums"], input[placeholder="Tìm kiếm album"], input[placeholder*="album" i]'))?.focus({ preventScroll: true });
   }
 
   async function addInGrid() {
-    if (getSel().length < 1) throw Error('No photos selected');
-    const btn = findVisible(qsa('button[aria-label="Create or add to album"]'));
-    if (!btn) throw Error('Button not found');
+    // Wait for at least one item to show up in selection
+    let selected = getSel();
+    for (let i = 0; i < 10; i++) {
+      if (selected.length >= 1) break;
+      await sleep(50);
+      selected = getSel();
+    }
+    if (selected.length < 1) throw Error('No photos selected');
+
+    // Wait up to 2 seconds for the Add to Album action button to appear
+    let btn = null;
+    for (let i = 0; i < 20; i++) {
+      btn = findVisible(qsa('button[aria-label="Create or add to album"], button[aria-label="Tạo hoặc thêm vào album"], button[aria-label*="album" i]'));
+      if (btn) break;
+      await sleep(100);
+    }
+    if (!btn) throw Error('Create or add to album button not found');
+
     ['pointerdown', 'mouseup', 'click'].forEach(t => btn.dispatchEvent(new MouseEvent(t, { bubbles: true, composed: true, cancelable: true })));
+    
     let albumOpt = null;
-    for (let i = 0; i < 12; i++) { await sleep(60); albumOpt = qsa('[role="menuitem"],[role="option"]').find(e => /Album/i.test(e.textContent || '')); if (albumOpt) break; }
-    if (!albumOpt) throw Error('"Album" entry not found');
+    for (let i = 0; i < 20; i++) {
+      await sleep(80);
+      albumOpt = qsa('[role="menuitem"],[role="option"]').find(e => /Album/i.test(e.textContent || '') || /Thêm vào/i.test(e.textContent || ''));
+      if (albumOpt) break;
+    }
+    if (!albumOpt) throw Error('"Album" entry not found in menu');
+    
     ['pointerdown', 'mouseup', 'click'].forEach(t => albumOpt.dispatchEvent(new MouseEvent(t, { bubbles: true, composed: true, cancelable: true })));
-    for (let i = 0; i < 12; i++) { await sleep(60); if (isAddModal()) break; }
-    findVisible(qsa('input[placeholder="Search albums"]'))?.focus({ preventScroll: true });
+    
+    for (let i = 0; i < 20; i++) {
+      await sleep(80);
+      if (isAddModal()) break;
+    }
+    findVisible(qsa('input[placeholder="Search albums"], input[placeholder="Tìm kiếm album"], input[placeholder*="album" i]'))?.focus({ preventScroll: true });
   }
 
   async function addAlbum() {
@@ -643,9 +798,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
 
       log(`Hover triggered for: ${key}`);
 
-      // Start prefetching download URL immediately on hover
-      let downloadUrlPromise = fetchDownloadUrl(key);
-
       // Check if we are inside an album/share/direct page
       const pathParts = window.location.pathname.split('/');
       const isAlbumPage = pathParts.includes('album') || pathParts.includes('share') || pathParts.includes('direct');
@@ -664,18 +816,9 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         fnText.textContent = 'Loading filename...';
         fnRow.appendChild(fnText);
         
-        // 2. Download link row
-        const dlRow = document.createElement('div');
-        dlRow.className = 'gp-hover-row gp-download-row';
-        const dlText = document.createElement('span');
-        dlText.className = 'gp-text';
-        dlText.textContent = 'Copy Download Link';
-        dlRow.appendChild(dlText);
-        
         hoverCard.appendChild(fnRow);
-        hoverCard.appendChild(dlRow);
         
-        // 3. Albums row (only if NOT on album page)
+        // 2. Albums row (only if NOT on album page)
         if (!isAlbumPage) {
           const albRow = document.createElement('div');
           albRow.className = 'gp-hover-row gp-albums-row';
@@ -689,8 +832,86 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         tile.appendChild(hoverCard);
       }
 
+      // Toolbar Container Setup (inside hoverCard)
+      let toolbar = hoverCard.querySelector('.gp-toolbar-container');
+      if (!toolbar) {
+        toolbar = document.createElement('div');
+        toolbar.className = 'gp-toolbar-container';
+        
+        // 1. Copy Link Button
+        const copyLinkBtn = document.createElement('div');
+        copyLinkBtn.className = 'gp-toolbar-btn gp-copy-btn';
+        copyLinkBtn.title = 'Copy Direct Download Link';
+        copyLinkBtn.innerHTML = SVG_LINK;
+        toolbar.appendChild(copyLinkBtn);
+
+        // 2. Direct Download Button
+        const downloadBtn = document.createElement('div');
+        downloadBtn.className = 'gp-toolbar-btn gp-download-btn';
+        downloadBtn.title = 'Download Original File';
+        downloadBtn.innerHTML = SVG_DOWNLOAD;
+        toolbar.appendChild(downloadBtn);
+
+        hoverCard.appendChild(toolbar);
+      }
+      
+      const copyLinkBtn = toolbar.querySelector('.gp-copy-btn');
+      const downloadBtn = toolbar.querySelector('.gp-download-btn');
+
+      // Copy Link Button Action
+      copyLinkBtn.onclick = async (evt) => {
+        evt.preventDefault();
+        evt.stopPropagation();
+        const currentKey = tile.getAttribute('data-gp-media-key');
+        if (!currentKey) return;
+        
+        const dUrl = await fetchDownloadUrl(currentKey);
+        if (dUrl) {
+          navigator.clipboard.writeText(dUrl).then(() => {
+            copyLinkBtn.innerHTML = SVG_CHECK;
+            copyLinkBtn.style.setProperty('color', '#10b981', 'important');
+            setTimeout(() => {
+              copyLinkBtn.innerHTML = SVG_LINK;
+              copyLinkBtn.style.removeProperty('color');
+            }, 1500);
+          });
+        } else {
+          copyLinkBtn.innerHTML = '<span style="font-size: 10px; color: #ef4444;">!</span>';
+          copyLinkBtn.style.setProperty('color', '#ef4444', 'important');
+          setTimeout(() => {
+            copyLinkBtn.innerHTML = SVG_LINK;
+            copyLinkBtn.style.removeProperty('color');
+          }, 1500);
+        }
+      };
+
+      // Direct Download Button Action
+      downloadBtn.onclick = async (evt) => {
+        evt.preventDefault();
+        evt.stopPropagation();
+        const currentKey = tile.getAttribute('data-gp-media-key');
+        if (!currentKey) return;
+
+        const dUrl = await fetchDownloadUrl(currentKey);
+        if (dUrl) {
+          triggerSingleDownload(dUrl);
+          downloadBtn.innerHTML = SVG_CHECK;
+          downloadBtn.style.setProperty('color', '#10b981', 'important');
+          setTimeout(() => {
+            downloadBtn.innerHTML = SVG_DOWNLOAD;
+            downloadBtn.style.removeProperty('color');
+          }, 1500);
+        } else {
+          downloadBtn.innerHTML = '<span style="font-size: 10px; color: #ef4444;">!</span>';
+          downloadBtn.style.setProperty('color', '#ef4444', 'important');
+          setTimeout(() => {
+            downloadBtn.innerHTML = SVG_DOWNLOAD;
+            downloadBtn.style.removeProperty('color');
+          }, 1500);
+        }
+      };
+
       const fnText = hoverCard.querySelector('.gp-filename-row .gp-text');
-      const dlText = hoverCard.querySelector('.gp-download-row .gp-text');
 
       // Add fade in
       setTimeout(() => hoverCard.classList.add('gp-hover-card--show'), 10);
@@ -730,40 +951,15 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       fnRow.onclick = (evt) => {
         evt.preventDefault();
         evt.stopPropagation();
-        navigator.clipboard.writeText(filename);
-        fnText.textContent = 'Copied filename!';
-        fnText.style.color = '#10b981'; // Green
+        // Extract clean filename without any trailing size suffix like (12.3 MiB)
+        const cleanName = filename.replace(/\s*\([^)]+\)$/, '');
+        navigator.clipboard.writeText(cleanName);
+        fnText.textContent = 'Copied!';
+        fnText.style.setProperty('color', '#10b981', 'important'); // Green
         setTimeout(() => {
           fnText.textContent = filename + sizeText;
-          fnText.style.color = '#fff';
+          fnText.style.removeProperty('color');
         }, 1200);
-      };
-
-      // Click to copy download link
-      const dlRow = hoverCard.querySelector('.gp-download-row');
-      dlRow.onclick = async (evt) => {
-        evt.preventDefault();
-        evt.stopPropagation();
-        
-        dlText.textContent = 'Fetching download link...';
-        const dUrl = await downloadUrlPromise;
-        if (dUrl) {
-          navigator.clipboard.writeText(dUrl).then(() => {
-            dlText.textContent = 'Copied link!';
-            dlText.style.color = '#10b981'; // Green
-            setTimeout(() => {
-              dlText.textContent = 'Copy Download Link';
-              dlText.style.color = '#fff';
-            }, 1200);
-          });
-        } else {
-          dlText.textContent = 'Failed to get link';
-          dlText.style.color = '#ef4444'; // Red
-          setTimeout(() => {
-            dlText.textContent = 'Copy Download Link';
-            dlText.style.color = '#fff';
-          }, 1200);
-        }
       };
 
       // Populate album list as clickable button rows
@@ -850,12 +1046,13 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: '8px'
+          gap: '8px',
+          cursor: 'pointer'
       });
+      itemDiv.title = 'Click to copy filename';
 
       const nameSpan = document.createElement('span');
       nameSpan.className = 'gp-text';
-      nameSpan.title = item.filename;
       nameSpan.textContent = item.filename;
       Object.assign(nameSpan.style, {
           whiteSpace: 'nowrap',
@@ -872,6 +1069,21 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
           opacity: '0.7',
           whiteSpace: 'nowrap'
       });
+
+      itemDiv.onclick = (evt) => {
+        evt.preventDefault();
+        evt.stopPropagation();
+        const cleanName = item.filename.replace(/\s*\([^)]+\)$/, '');
+        navigator.clipboard.writeText(cleanName);
+        
+        const originalText = nameSpan.textContent;
+        nameSpan.textContent = 'Copied!';
+        nameSpan.style.color = '#10b981';
+        setTimeout(() => {
+          nameSpan.textContent = originalText;
+          nameSpan.style.color = '';
+        }, 1000);
+      };
 
       itemDiv.appendChild(nameSpan);
       itemDiv.appendChild(sizeSpan);
@@ -975,19 +1187,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
   }
 
-  function attachAlbumCardListeners() {
-    document.querySelectorAll('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]').forEach(card => {
-      const href = card.getAttribute('href') || '';
-      if (href.includes('/photo/')) return;
-      if (card.hasAttribute('data-gpd-album-attached')) return;
-      card.setAttribute('data-gpd-album-attached', '1');
-      card.addEventListener('mouseenter', handleAlbumMouseEnter);
-      card.addEventListener('mouseleave', handleAlbumMouseLeave);
-    });
-  }
-
   /* =============================================================
-   *  7. UNIFIED DOM SCANNING
+   *  7. UNIFIED DOM SCANNING & EVENT DELEGATION
    * ============================================================= */
   function attachTile(tile) {
     if (!tile || tile.hasAttribute('data-gp-master-attached')) return;
@@ -1000,20 +1201,24 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       if (cachedAlb && (Date.now() - cachedAlb.time < CACHE_TTL)) updateTileVisuals(key, cachedAlb.names.length);
     }
 
-    tile.addEventListener('mouseenter', e => showHoverUI(tile, e));
-    tile.addEventListener('mouseleave', () => hideHoverUI(tile));
     visibleObserver.observe(tile);
-  }
-
-  function attachCheckbox(cb) {
-    if (!cb || cb.hasAttribute('data-gp-master-cb-attached')) return;
-    cb.setAttribute('data-gp-master-cb-attached', '1');
-    cb.addEventListener('mouseenter', e => showHoverUI(getTile(cb), e));
-    cb.addEventListener('mouseleave', () => hideHoverUI(getTile(cb)));
   }
 
   function scan() {
     updateThemeClass();
+    
+    // Safety cleanup for stuck hover menus
+    if (activeHoveredTile && !activeHoveredTile.matches(':hover')) {
+      activeHoveredTile._gpIsHovered = false;
+      hideHoverUI(activeHoveredTile);
+      activeHoveredTile = null;
+    }
+    if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover')) {
+      activeHoveredAlbumCard._gpIsHovered = false;
+      handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
+      activeHoveredAlbumCard = null;
+    }
+
     document.querySelectorAll('.RY3tic').forEach(tile => {
       if (!tile.hasAttribute('data-gp-master-attached')) {
         attachTile(tile);
@@ -1034,8 +1239,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         }
       }
     });
-    document.querySelectorAll('.QcpS9c.ckGgle:not([data-gp-master-cb-attached])').forEach(attachCheckbox);
-    attachAlbumCardListeners(); // Attach listeners to album cards
   }
 
   let scanTimer = null;
@@ -1043,6 +1246,96 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     if (scanTimer) return;
     scanTimer = setTimeout(() => { scan(); scanTimer = null; }, 150);
   }
+
+  // Setup Event Delegation for all Hover UI features
+  document.body.addEventListener('mouseover', e => {
+    if (!e.target || typeof e.target.closest !== 'function') return;
+    
+    // 1. Photo tiles & Checkboxes
+    const targetEl = e.target.closest('.RY3tic, .QcpS9c.ckGgle');
+    if (targetEl) {
+      const tile = targetEl.classList.contains('RY3tic') ? targetEl : getTile(targetEl);
+      if (tile && !tile._gpIsHovered) {
+        // Clean up previously active tile if any
+        if (activeHoveredTile && activeHoveredTile !== tile) {
+          activeHoveredTile._gpIsHovered = false;
+          hideHoverUI(activeHoveredTile);
+        }
+        tile._gpIsHovered = true;
+        activeHoveredTile = tile;
+        showHoverUI(tile, e);
+      }
+      return;
+    }
+
+    // 2. Album Cards
+    const card = e.target.closest('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]');
+    if (card) {
+      const href = card.getAttribute('href') || '';
+      if (href.includes('/photo/')) return;
+      if (!card._gpIsHovered) {
+        // Clean up previously active album card if any
+        if (activeHoveredAlbumCard && activeHoveredAlbumCard !== card) {
+          activeHoveredAlbumCard._gpIsHovered = false;
+          handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
+        }
+        card._gpIsHovered = true;
+        activeHoveredAlbumCard = card;
+        handleAlbumMouseEnter({ currentTarget: card });
+      }
+    }
+  });
+
+  document.body.addEventListener('mouseout', e => {
+    if (!e.target || typeof e.target.closest !== 'function') return;
+    
+    // 1. Photo tiles & Checkboxes
+    const targetEl = e.target.closest('.RY3tic, .QcpS9c.ckGgle');
+    if (targetEl) {
+      const tile = targetEl.classList.contains('RY3tic') ? targetEl : getTile(targetEl);
+      if (tile) {
+        const relTile = e.relatedTarget && typeof e.relatedTarget.closest === 'function' ? e.relatedTarget.closest('.RY3tic, .QcpS9c.ckGgle') : null;
+        const relTileResolved = relTile ? (relTile.classList.contains('RY3tic') ? relTile : getTile(relTile)) : null;
+        if (relTileResolved === tile) return; // Still inside the same tile or its checkbox
+        tile._gpIsHovered = false;
+        if (activeHoveredTile === tile) activeHoveredTile = null;
+        hideHoverUI(tile);
+      }
+      return;
+    }
+
+    // 2. Album Cards
+    const card = e.target.closest('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]');
+    if (card) {
+      if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+      if (card._gpIsHovered) {
+        card._gpIsHovered = false;
+        if (activeHoveredAlbumCard === card) activeHoveredAlbumCard = null;
+        handleAlbumMouseLeave({ currentTarget: card });
+      }
+    }
+  });
+
+  // Global throttled mousemove backup to clean up stuck hover menus
+  let mousemoveTimeout = null;
+  document.body.addEventListener('mousemove', () => {
+    if (mousemoveTimeout) return;
+    mousemoveTimeout = setTimeout(() => {
+      // 1. Clean up tile hover
+      if (activeHoveredTile && !activeHoveredTile.matches(':hover')) {
+        activeHoveredTile._gpIsHovered = false;
+        hideHoverUI(activeHoveredTile);
+        activeHoveredTile = null;
+      }
+      // 2. Clean up album card hover
+      if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover')) {
+        activeHoveredAlbumCard._gpIsHovered = false;
+        handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
+        activeHoveredAlbumCard = null;
+      }
+      mousemoveTimeout = null;
+    }, 100);
+  });
 
   new MutationObserver(debouncedScan).observe(document.body, { childList: true, subtree: true });
   setInterval(scan, 1500);

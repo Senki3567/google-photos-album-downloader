@@ -41,7 +41,11 @@
     }
 
     // Resolve and update theme classes dynamically based on body text color
+    let lastThemeCheck = 0;
     function updateThemeClass() {
+        const now = Date.now();
+        if (now - lastThemeCheck < 5000) return; // Only check theme color at most once every 5 seconds
+        lastThemeCheck = now;
         try {
             const bodyColor = window.getComputedStyle(document.body).color || '';
             const rgb = bodyColor.match(/\d+/g);
@@ -65,34 +69,36 @@
     style.textContent = `
         /* Theme Variables & Base Styles */
         body {
-            --gpd-panel-bg: rgba(255, 255, 255, 0.85);
-            --gpd-panel-border: rgba(0, 0, 0, 0.08);
+            --gpd-panel-bg: rgba(255, 255, 255, 0.92);
+            --gpd-panel-border: rgba(0, 0, 0, 0.12);
             --gpd-text: #1f1f1f;
             --gpd-text-secondary: #5f6368;
-            --gpd-btn-bg: rgba(0, 0, 0, 0.05);
+            --gpd-btn-bg: rgba(0, 0, 0, 0.04);
             --gpd-btn-hover: rgba(0, 0, 0, 0.08);
-            --gpd-btn-text: #1a73e8;
-            --gpd-btn-primary-bg: #1a73e8;
+            --gpd-btn-trigger-hover: rgba(240, 240, 240, 0.95);
+            --gpd-btn-text: #1f1f1f;
+            --gpd-btn-primary-bg: #1f1f1f;
             --gpd-btn-primary-text: #ffffff;
-            --gpd-btn-primary-hover: #1557b0;
+            --gpd-btn-primary-hover: #333333;
             --gpd-progress-bg: rgba(0, 0, 0, 0.06);
-            --gpd-accent: #1a73e8;
-            --gpd-shadow: 0 8px 32px rgba(60, 64, 67, 0.15), 0 1px 3px rgba(60, 64, 67, 0.1);
+            --gpd-accent: #1f1f1f;
+            --gpd-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         body.gp-dark-mode {
-            --gpd-panel-bg: rgba(32, 33, 36, 0.85) !important;
-            --gpd-panel-border: rgba(255, 255, 255, 0.08) !important;
-            --gpd-text: #e3e3e3 !important;
-            --gpd-text-secondary: #9aa0a6 !important;
-            --gpd-btn-bg: rgba(255, 255, 255, 0.06) !important;
-            --gpd-btn-hover: rgba(255, 255, 255, 0.1) !important;
-            --gpd-btn-text: #8ab4f8 !important;
-            --gpd-btn-primary-bg: #8ab4f8 !important;
-            --gpd-btn-primary-text: #202124 !important;
-            --gpd-btn-primary-hover: #aecbfa !important;
+            --gpd-panel-bg: rgba(30, 30, 30, 0.85) !important;
+            --gpd-panel-border: rgba(255, 255, 255, 0.12) !important;
+            --gpd-text: #ffffff !important;
+            --gpd-text-secondary: #aaaaaa !important;
+            --gpd-btn-bg: rgba(255, 255, 255, 0.08) !important;
+            --gpd-btn-hover: rgba(255, 255, 255, 0.15) !important;
+            --gpd-btn-trigger-hover: rgba(70, 70, 70, 0.95) !important;
+            --gpd-btn-text: #ffffff !important;
+            --gpd-btn-primary-bg: #ffffff !important;
+            --gpd-btn-primary-text: #1f1f1f !important;
+            --gpd-btn-primary-hover: #e0e0e0 !important;
             --gpd-progress-bg: rgba(255, 255, 255, 0.08) !important;
-            --gpd-accent: #8ab4f8 !important;
-            --gpd-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+            --gpd-accent: #ffffff !important;
+            --gpd-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         }
 
         #gpd-trigger-btn {
@@ -112,12 +118,12 @@
             cursor: pointer;
             background: var(--gpd-panel-bg);
             color: var(--gpd-btn-text);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
         #gpd-trigger-btn:hover {
             transform: scale(1.08);
-            background: var(--gpd-btn-hover);
+            background: var(--gpd-btn-trigger-hover);
         }
         #gpd-trigger-btn:active {
             transform: scale(0.95);
@@ -125,14 +131,14 @@
 
         #gpd-panel {
             position: fixed;
-            bottom: 80px;
+            bottom: 24px;
             left: 24px;
             z-index: 999999;
             background: var(--gpd-panel-bg);
             border: 1px solid var(--gpd-panel-border);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 8px;
             box-shadow: var(--gpd-shadow);
             padding: 12px;
             color: var(--gpd-text);
@@ -143,7 +149,7 @@
             flex-direction: column;
             gap: 8px;
             opacity: 0;
-            transform: translateY(10px) scale(0.95);
+            transform: translateY(6px) scale(0.98);
             pointer-events: none;
             transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -163,7 +169,7 @@
             font-size: 13px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -171,10 +177,6 @@
         }
         .gpd-action-btn:hover:not(:disabled) {
             background: var(--gpd-btn-hover);
-            transform: translateY(-1px);
-        }
-        .gpd-action-btn:active:not(:disabled) {
-            transform: translateY(0);
         }
         .gpd-action-btn:disabled {
             opacity: 0.5;
@@ -257,18 +259,52 @@
 
         document.body.appendChild(panel);
 
-        // Event Listeners
+        // Event Listeners for Hover-triggered Menu
+        let closeTimeout = null;
+        function openPanel() {
+            if (closeTimeout) {
+                clearTimeout(closeTimeout);
+                closeTimeout = null;
+            }
+            panel.classList.add('gpd-visible');
+            panelTrigger.style.opacity = '0';
+            panelTrigger.style.pointerEvents = 'none';
+        }
+        function closePanel() {
+            if (closeTimeout) return;
+            closeTimeout = setTimeout(() => {
+                panel.classList.remove('gpd-visible');
+                panelTrigger.style.opacity = '1';
+                panelTrigger.style.pointerEvents = 'auto';
+                closeTimeout = null;
+            }, 300); // 300ms delay to slide mouse smoothly between trigger and panel
+        }
+
+        panelTrigger.addEventListener('mouseenter', openPanel);
+        panelTrigger.addEventListener('mouseleave', closePanel);
+        panel.addEventListener('mouseenter', openPanel);
+        panel.addEventListener('mouseleave', closePanel);
+
+        // Click toggle fallback
         panelTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
-            panel.classList.toggle('gpd-visible');
+            if (panel.classList.contains('gpd-visible')) {
+                panel.classList.remove('gpd-visible');
+                panelTrigger.style.opacity = '1';
+                panelTrigger.style.pointerEvents = 'auto';
+            } else {
+                openPanel();
+            }
         });
 
-        // Close on clicking outside the panel
+        // Backup close on clicking outside
         document.addEventListener('click', (e) => {
             if (panel.classList.contains('gpd-visible') && 
                 !panel.contains(e.target) && 
                 !panelTrigger.contains(e.target)) {
                 panel.classList.remove('gpd-visible');
+                panelTrigger.style.opacity = '1';
+                panelTrigger.style.pointerEvents = 'auto';
             }
         });
 
@@ -409,7 +445,7 @@
         progressFill.style.background = 'var(--gpd-accent)';
 
         let completed = 0;
-        const concurrencyLimit = 3;
+        const concurrencyLimit = 10;
         let index = 0;
 
         await new Promise((resolve) => {
@@ -483,7 +519,7 @@
             const total = albumItems.length;
             if (total === 0) {
                 scanBtn.textContent = 'No items found!';
-                progressFill.style.background = '#dc3545';
+                progressFill.style.background = '#ef4444';
                 isWorking = false;
                 scanBtn.disabled = false;
                 return;
@@ -497,19 +533,19 @@
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
             if (urls.length === 0) {
                 scanBtn.textContent = 'Fetch failed';
-                progressFill.style.background = '#dc3545';
+                progressFill.style.background = '#ef4444';
                 copyBtn.disabled = true;
                 downloadAllBtn.disabled = true;
             } else {
                 scanBtn.textContent = `Fetched ${urls.length} links ✓`;
-                progressFill.style.background = '#28a745'; // Success green
+                progressFill.style.background = '#10b981'; // Success green
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
             }
         } catch (error) {
             console.error('Fetch error:', error);
             scanBtn.textContent = 'Fetch error';
-            progressFill.style.background = '#dc3545'; // Error red
+            progressFill.style.background = '#ef4444'; // Error red
         } finally {
             isWorking = false;
             scanBtn.disabled = false;
@@ -567,7 +603,7 @@
             }
 
             downloadAllBtn.textContent = `Downloaded ${urls.length} items ✓`;
-            progressFill.style.background = '#28a745';
+            progressFill.style.background = '#10b981';
             
             setTimeout(() => {
                 downloadAllBtn.textContent = 'Download All';
@@ -577,7 +613,7 @@
         } catch (error) {
             console.error('Download all error:', error);
             downloadAllBtn.textContent = 'Download error';
-            progressFill.style.background = '#dc3545';
+            progressFill.style.background = '#ef4444';
         } finally {
             isWorking = false;
             scanBtn.disabled = false;
