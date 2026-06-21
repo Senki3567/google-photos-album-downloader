@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.0
+// @version      3.1
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -22,16 +22,20 @@
 
     // Material Design SVG Paths
     const PATH_DOWNLOAD = "M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z";
+    const PATH_LINK = "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0 0 10h4v-1.9H7A3.1 3.1 0 0 1 3.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 1 1 0 6.2h-4V17h4a5 5 0 0 0 0-10z";
+    const PATH_COPY = "M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z";
     const PATH_CHECK = "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
     const PATH_CLOSE = "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
 
     // Helper to create SVG programmatically (avoids Trusted Types innerHTML issues)
-    function createSvgIcon(pathD) {
+    function createSvgIcon(pathD, size = 20) {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svg.setAttribute("viewBox", "0 0 24 24");
-        svg.setAttribute("width", "20");
-        svg.setAttribute("height", "20");
+        svg.setAttribute("width", String(size));
+        svg.setAttribute("height", String(size));
         svg.setAttribute("fill", "currentColor");
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("focusable", "false");
         
         const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", pathD);
@@ -206,15 +210,279 @@
             border-radius: 1.5px;
             transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
         }
+
+        /* Material 3 refinement layer */
+        body {
+            --gpd-panel-bg: rgba(255, 255, 255, 0.96);
+            --gpd-panel-border: #c4c7c5;
+            --gpd-text: #1f1f1f;
+            --gpd-text-secondary: #5f6368;
+            --gpd-btn-bg: transparent;
+            --gpd-btn-hover: #d3e3fd;
+            --gpd-btn-trigger-hover: #d3e3fd;
+            --gpd-btn-text: #0b57d0;
+            --gpd-btn-primary-bg: #0b57d0;
+            --gpd-btn-primary-text: #ffffff;
+            --gpd-btn-primary-hover: #0842a0;
+            --gpd-progress-bg: #e8eaed;
+            --gpd-accent: #0b57d0;
+            --gpd-primary-container: #d3e3fd;
+            --gpd-on-primary-container: #041e49;
+            --gpd-surface-container: #f1f3f4;
+            --gpd-surface-container-high: #e8eaed;
+            --gpd-success: #137333;
+            --gpd-error: #b3261e;
+            --gpd-focus: #0b57d0;
+            --gpd-shadow: 0 8px 28px rgba(60, 64, 67, 0.22), 0 2px 8px rgba(60, 64, 67, 0.14);
+        }
+        body.gp-dark-mode {
+            --gpd-panel-bg: rgba(32, 33, 36, 0.97) !important;
+            --gpd-panel-border: #5f6368 !important;
+            --gpd-text: #e8eaed !important;
+            --gpd-text-secondary: #bdc1c6 !important;
+            --gpd-btn-bg: transparent !important;
+            --gpd-btn-hover: #0842a0 !important;
+            --gpd-btn-trigger-hover: #0842a0 !important;
+            --gpd-btn-text: #a8c7fa !important;
+            --gpd-btn-primary-bg: #a8c7fa !important;
+            --gpd-btn-primary-text: #062e6f !important;
+            --gpd-btn-primary-hover: #d3e3fd !important;
+            --gpd-progress-bg: #3c4043 !important;
+            --gpd-accent: #a8c7fa !important;
+            --gpd-primary-container: #0842a0 !important;
+            --gpd-on-primary-container: #d3e3fd !important;
+            --gpd-surface-container: #292a2d !important;
+            --gpd-surface-container-high: #3c4043 !important;
+            --gpd-success: #81c995 !important;
+            --gpd-error: #f2b8b5 !important;
+            --gpd-focus: #a8c7fa !important;
+            --gpd-shadow: 0 10px 32px rgba(0, 0, 0, 0.46), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+        }
+        #gpd-trigger-btn {
+            width: 48px;
+            height: 48px;
+            color: var(--gpd-btn-text);
+            border-color: var(--gpd-panel-border);
+            background: var(--gpd-panel-bg);
+            backdrop-filter: blur(16px) saturate(135%);
+            -webkit-backdrop-filter: blur(16px) saturate(135%);
+            transition: background-color 180ms ease, box-shadow 180ms ease, opacity 160ms ease;
+            touch-action: manipulation;
+        }
+        #gpd-trigger-btn:hover {
+            transform: none;
+            background: var(--gpd-btn-trigger-hover);
+            box-shadow: 0 10px 30px rgba(60, 64, 67, 0.28);
+        }
+        #gpd-trigger-btn:active {
+            transform: none;
+            background: var(--gpd-surface-container-high);
+        }
+        #gpd-trigger-btn:focus-visible,
+        #gpd-panel button:focus-visible {
+            outline: 3px solid color-mix(in srgb, var(--gpd-focus) 55%, transparent);
+            outline-offset: 2px;
+        }
+        #gpd-panel {
+            width: 320px;
+            max-width: calc(100vw - 32px);
+            padding: 16px;
+            gap: 14px;
+            border-radius: 20px;
+            border-color: var(--gpd-panel-border);
+            background: var(--gpd-panel-bg);
+            backdrop-filter: blur(18px) saturate(135%);
+            -webkit-backdrop-filter: blur(18px) saturate(135%);
+            transform: translateY(10px);
+            visibility: hidden;
+            transition: opacity 180ms ease, transform 220ms cubic-bezier(0.2, 0, 0, 1), visibility 0s linear 220ms;
+        }
+        #gpd-panel.gpd-visible {
+            transform: translateY(0);
+            visibility: visible;
+            transition-delay: 0s;
+        }
+        .gpd-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .gpd-brand-mark {
+            width: 40px;
+            height: 40px;
+            flex: 0 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            color: var(--gpd-on-primary-container);
+            background: var(--gpd-primary-container);
+        }
+        .gpd-heading-group {
+            min-width: 0;
+            flex: 1;
+        }
+        .gpd-title {
+            margin: 0;
+            color: var(--gpd-text);
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+        .gpd-subtitle {
+            margin: 2px 0 0;
+            color: var(--gpd-text-secondary);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .gpd-close-btn {
+            width: 40px;
+            height: 40px;
+            flex: 0 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--gpd-text-secondary);
+            cursor: pointer;
+        }
+        .gpd-close-btn:hover {
+            background: var(--gpd-surface-container);
+            color: var(--gpd-text);
+        }
+        .gpd-status-card {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 12px;
+            border-radius: 14px;
+            background: var(--gpd-surface-container);
+        }
+        .gpd-status-text {
+            color: var(--gpd-text);
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+        .gpd-status-text[data-tone="success"] {
+            color: var(--gpd-success);
+        }
+        .gpd-status-text[data-tone="error"] {
+            color: var(--gpd-error);
+        }
+        .gpd-summary-text {
+            color: var(--gpd-text-secondary);
+            font-size: 12px;
+            line-height: 1.45;
+        }
+        .gpd-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 8px;
+        }
+        .gpd-action-btn {
+            min-height: 44px;
+            padding: 9px 14px;
+            border-radius: 22px;
+            border-color: var(--gpd-panel-border);
+            color: var(--gpd-btn-text);
+            font-family: inherit;
+            font-weight: 600;
+            transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+            touch-action: manipulation;
+        }
+        .gpd-action-btn--wide {
+            grid-column: 1 / -1;
+        }
+        .gpd-action-btn:hover:not(:disabled) {
+            border-color: var(--gpd-btn-text);
+        }
+        .gpd-action-btn:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
+        }
+        .gpd-action-btn-primary {
+            border: 1px solid var(--gpd-btn-primary-bg);
+        }
+        .gpd-action-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .gpd-progress-bar {
+            height: 4px;
+            margin: 0;
+            border-radius: 999px;
+        }
+        .gpd-progress-fill {
+            border-radius: inherit;
+            transition: width 200ms cubic-bezier(0.2, 0, 0, 1), background-color 160ms ease;
+        }
+        .gpd-progress-fill[data-tone="success"] {
+            background: var(--gpd-success);
+        }
+        .gpd-progress-fill[data-tone="error"] {
+            background: var(--gpd-error);
+        }
+        @media (max-width: 420px) {
+            #gpd-trigger-btn,
+            #gpd-panel {
+                left: 16px;
+                bottom: 16px;
+            }
+            #gpd-panel {
+                padding: 14px;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #gpd-trigger-btn,
+            #gpd-panel,
+            .gpd-action-btn,
+            .gpd-progress-fill {
+                transition-duration: 1ms !important;
+            }
+        }
     `;
     document.head.appendChild(style);
 
-    let panel, panelTrigger, progressBar, progressFill, scanBtn, copyBtn, downloadAllBtn;
+    let panel, panelTrigger, panelClose, progressBar, progressFill, statusText, summaryText;
+    let scanBtn, copyBtn, downloadAllBtn;
     let albumMediaKey = null;
     let authKey = null;
     let fetchedItems = [];
     let isWorking = false;
     let lastAlbumKey = null;
+
+    function setButtonContent(button, iconPath, label) {
+        const labelNode = document.createElement('span');
+        labelNode.className = 'gpd-action-label';
+        labelNode.textContent = label;
+        button.replaceChildren(createSvgIcon(iconPath, 18), labelNode);
+    }
+
+    function setButtonLabel(button, label) {
+        const labelNode = button?.querySelector('.gpd-action-label');
+        if (labelNode) labelNode.textContent = label;
+    }
+
+    function setPanelStatus(message, detail, tone = 'neutral') {
+        if (statusText) {
+            statusText.textContent = message;
+            statusText.dataset.tone = tone;
+        }
+        if (summaryText && detail !== undefined) summaryText.textContent = detail;
+    }
+
+    function setProgress(value, tone = 'primary') {
+        const boundedValue = Math.max(0, Math.min(100, Number(value) || 0));
+        if (progressFill) {
+            progressFill.style.width = `${boundedValue}%`;
+            progressFill.dataset.tone = tone;
+        }
+        if (progressBar) progressBar.setAttribute('aria-valuenow', String(boundedValue));
+    }
 
     function init() {
         if (document.getElementById('gpd-trigger-btn')) return;
@@ -222,41 +490,106 @@
         // 1. Create Floating Trigger Button
         panelTrigger = document.createElement('button');
         panelTrigger.id = 'gpd-trigger-btn';
-        panelTrigger.title = 'GP Downloader';
+        panelTrigger.type = 'button';
+        panelTrigger.title = 'Open album download tools';
+        panelTrigger.setAttribute('aria-label', 'Open album download tools');
+        panelTrigger.setAttribute('aria-controls', 'gpd-panel');
+        panelTrigger.setAttribute('aria-expanded', 'false');
         panelTrigger.replaceChildren(createSvgIcon(PATH_DOWNLOAD));
         document.body.appendChild(panelTrigger);
 
         // 2. Create Panel
         panel = document.createElement('div');
         panel.id = 'gpd-panel';
+        panel.setAttribute('role', 'region');
+        panel.setAttribute('aria-label', 'Album download tools');
+        panel.setAttribute('aria-hidden', 'true');
+
+        const panelHeader = document.createElement('div');
+        panelHeader.className = 'gpd-panel-header';
+
+        const brandMark = document.createElement('div');
+        brandMark.className = 'gpd-brand-mark';
+        brandMark.appendChild(createSvgIcon(PATH_DOWNLOAD, 21));
+
+        const headingGroup = document.createElement('div');
+        headingGroup.className = 'gpd-heading-group';
+
+        const title = document.createElement('h2');
+        title.className = 'gpd-title';
+        title.textContent = 'Album downloader';
+
+        const subtitle = document.createElement('p');
+        subtitle.className = 'gpd-subtitle';
+        subtitle.textContent = 'Original-quality album links';
+
+        headingGroup.append(title, subtitle);
+
+        panelClose = document.createElement('button');
+        panelClose.type = 'button';
+        panelClose.className = 'gpd-close-btn';
+        panelClose.title = 'Close';
+        panelClose.setAttribute('aria-label', 'Close album download tools');
+        panelClose.appendChild(createSvgIcon(PATH_CLOSE, 19));
+
+        panelHeader.append(brandMark, headingGroup, panelClose);
+        panel.appendChild(panelHeader);
+
+        const statusCard = document.createElement('div');
+        statusCard.className = 'gpd-status-card';
+
+        statusText = document.createElement('div');
+        statusText.className = 'gpd-status-text';
+        statusText.setAttribute('role', 'status');
+        statusText.setAttribute('aria-live', 'polite');
+        statusText.textContent = 'Ready to fetch album links';
+
+        summaryText = document.createElement('div');
+        summaryText.className = 'gpd-summary-text';
+        summaryText.textContent = 'Fetch links first, then copy or download them.';
+
+        statusCard.append(statusText, summaryText);
+        panel.appendChild(statusCard);
 
         // Progress bar
         progressBar = document.createElement('div');
         progressBar.className = 'gpd-progress-bar';
+        progressBar.setAttribute('role', 'progressbar');
+        progressBar.setAttribute('aria-label', 'Album processing progress');
+        progressBar.setAttribute('aria-valuemin', '0');
+        progressBar.setAttribute('aria-valuemax', '100');
+        progressBar.setAttribute('aria-valuenow', '0');
 
         progressFill = document.createElement('div');
         progressFill.className = 'gpd-progress-fill';
         progressBar.appendChild(progressFill);
         panel.appendChild(progressBar);
 
+        const actions = document.createElement('div');
+        actions.className = 'gpd-actions';
+
         // 3 Buttons
         scanBtn = document.createElement('button');
-        scanBtn.className = 'gpd-action-btn gpd-action-btn-primary';
-        scanBtn.textContent = 'Fetch Download Links';
-        panel.appendChild(scanBtn);
+        scanBtn.type = 'button';
+        scanBtn.className = 'gpd-action-btn gpd-action-btn-primary gpd-action-btn--wide';
+        setButtonContent(scanBtn, PATH_LINK, 'Fetch download links');
+        actions.appendChild(scanBtn);
 
         copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
         copyBtn.className = 'gpd-action-btn';
-        copyBtn.textContent = 'Copy All Links';
+        setButtonContent(copyBtn, PATH_COPY, 'Copy links');
         copyBtn.disabled = true;
-        panel.appendChild(copyBtn);
+        actions.appendChild(copyBtn);
 
         downloadAllBtn = document.createElement('button');
+        downloadAllBtn.type = 'button';
         downloadAllBtn.className = 'gpd-action-btn';
-        downloadAllBtn.textContent = 'Download All';
+        setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
         downloadAllBtn.disabled = true;
-        panel.appendChild(downloadAllBtn);
+        actions.appendChild(downloadAllBtn);
 
+        panel.appendChild(actions);
         document.body.appendChild(panel);
 
         // Event Listeners for Hover-triggered Menu
@@ -267,31 +600,47 @@
                 closeTimeout = null;
             }
             panel.classList.add('gpd-visible');
+            panel.setAttribute('aria-hidden', 'false');
+            panelTrigger.setAttribute('aria-expanded', 'true');
             panelTrigger.style.opacity = '0';
             panelTrigger.style.pointerEvents = 'none';
         }
-        function closePanel() {
-            if (closeTimeout) return;
-            closeTimeout = setTimeout(() => {
+        function closePanel(immediate = false) {
+            if (closeTimeout) {
+                if (!immediate) return;
+                clearTimeout(closeTimeout);
+                closeTimeout = null;
+            }
+            const finishClose = () => {
+                if (!immediate && panel.matches(':hover, :focus-within')) {
+                    closeTimeout = null;
+                    return;
+                }
                 panel.classList.remove('gpd-visible');
+                panel.setAttribute('aria-hidden', 'true');
+                panelTrigger.setAttribute('aria-expanded', 'false');
                 panelTrigger.style.opacity = '1';
                 panelTrigger.style.pointerEvents = 'auto';
                 closeTimeout = null;
-            }, 300); // 300ms delay to slide mouse smoothly between trigger and panel
+            };
+            if (immediate) finishClose();
+            else closeTimeout = setTimeout(finishClose, 260);
         }
 
         panelTrigger.addEventListener('mouseenter', openPanel);
         panelTrigger.addEventListener('mouseleave', closePanel);
         panel.addEventListener('mouseenter', openPanel);
         panel.addEventListener('mouseleave', closePanel);
+        panelClose.addEventListener('click', () => {
+            closePanel(true);
+            panelTrigger.focus({ preventScroll: true });
+        });
 
         // Click toggle fallback
         panelTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
             if (panel.classList.contains('gpd-visible')) {
-                panel.classList.remove('gpd-visible');
-                panelTrigger.style.opacity = '1';
-                panelTrigger.style.pointerEvents = 'auto';
+                closePanel(true);
             } else {
                 openPanel();
             }
@@ -302,9 +651,13 @@
             if (panel.classList.contains('gpd-visible') && 
                 !panel.contains(e.target) && 
                 !panelTrigger.contains(e.target)) {
-                panel.classList.remove('gpd-visible');
-                panelTrigger.style.opacity = '1';
-                panelTrigger.style.pointerEvents = 'auto';
+                closePanel(true);
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && panel.classList.contains('gpd-visible')) {
+                closePanel(true);
+                panelTrigger.focus({ preventScroll: true });
             }
         });
 
@@ -361,23 +714,32 @@
             if (lastAlbumKey !== albumMediaKey) {
                 lastAlbumKey = albumMediaKey;
                 fetchedItems = [];
-                if (progressFill) progressFill.style.width = '0%';
+                setProgress(0);
+                setPanelStatus('Ready to fetch album links', 'Fetch links first, then copy or download them.');
                 if (scanBtn) {
                     scanBtn.disabled = false;
-                    scanBtn.textContent = 'Fetch Download Links';
+                    setButtonContent(scanBtn, PATH_LINK, 'Fetch download links');
                 }
                 if (copyBtn) {
                     copyBtn.disabled = true;
-                    copyBtn.textContent = 'Copy All Links';
+                    setButtonContent(copyBtn, PATH_COPY, 'Copy links');
                 }
                 if (downloadAllBtn) {
                     downloadAllBtn.disabled = true;
-                    downloadAllBtn.textContent = 'Download All';
+                    setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
                 }
             }
         } else {
             if (panelTrigger) panelTrigger.style.display = 'none';
-            if (panel) panel.classList.remove('gpd-visible');
+            if (panel) {
+                panel.classList.remove('gpd-visible');
+                panel.setAttribute('aria-hidden', 'true');
+            }
+            if (panelTrigger) {
+                panelTrigger.setAttribute('aria-expanded', 'false');
+                panelTrigger.style.opacity = '1';
+                panelTrigger.style.pointerEvents = 'auto';
+            }
         }
     }
 
@@ -440,9 +802,9 @@
 
     async function resolveAllDownloadUrls() {
         const total = fetchedItems.length;
-        scanBtn.textContent = `Fetching... (0/${total})`;
-        progressFill.style.width = '0%';
-        progressFill.style.background = 'var(--gpd-accent)';
+        setButtonLabel(scanBtn, `Resolving 0/${total}`);
+        setPanelStatus('Creating original-quality links', `0 of ${total} items processed.`);
+        setProgress(0);
 
         let completed = 0;
         const concurrencyLimit = 10;
@@ -462,8 +824,9 @@
                     if (item.downloadUrl) {
                         completed++;
                         const percent = Math.round((completed / total) * 100);
-                        progressFill.style.width = `${percent}%`;
-                        scanBtn.textContent = `Fetching... (${completed}/${total})`;
+                        setProgress(percent);
+                        setButtonLabel(scanBtn, `Resolving ${completed}/${total}`);
+                        setPanelStatus('Creating original-quality links', `${completed} of ${total} items processed.`);
                         if (completed === total) resolve();
                         continue;
                     }
@@ -477,8 +840,9 @@
                         } finally {
                             completed++;
                             const percent = Math.round((completed / total) * 100);
-                            progressFill.style.width = `${percent}%`;
-                            scanBtn.textContent = `Fetching... (${completed}/${total})`;
+                            setProgress(percent);
+                            setButtonLabel(scanBtn, `Resolving ${completed}/${total}`);
+                            setPanelStatus('Creating original-quality links', `${completed} of ${total} items processed.`);
                             if (completed === total) {
                                 resolve();
                             } else {
@@ -500,9 +864,10 @@
         copyBtn.disabled = true;
         downloadAllBtn.disabled = true;
         
-        scanBtn.textContent = 'Scanning...';
-        progressFill.style.width = '0%';
-        progressFill.style.background = 'var(--gpd-accent)';
+        scanBtn.setAttribute('aria-busy', 'true');
+        setButtonLabel(scanBtn, 'Scanning album');
+        setPanelStatus('Scanning this album', 'Looking for photos and videos…');
+        setProgress(0);
 
         try {
             let albumItems = [];
@@ -518,8 +883,9 @@
 
             const total = albumItems.length;
             if (total === 0) {
-                scanBtn.textContent = 'No items found!';
-                progressFill.style.background = '#ef4444';
+                setButtonLabel(scanBtn, 'Try again');
+                setPanelStatus('No items were found', 'Open the album again, then retry.', 'error');
+                setProgress(100, 'error');
                 isWorking = false;
                 scanBtn.disabled = false;
                 return;
@@ -532,23 +898,27 @@
 
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
             if (urls.length === 0) {
-                scanBtn.textContent = 'Fetch failed';
-                progressFill.style.background = '#ef4444';
+                setButtonLabel(scanBtn, 'Try again');
+                setPanelStatus('Could not create download links', 'Refresh Google Photos and try again.', 'error');
+                setProgress(100, 'error');
                 copyBtn.disabled = true;
                 downloadAllBtn.disabled = true;
             } else {
-                scanBtn.textContent = `Fetched ${urls.length} links ✓`;
-                progressFill.style.background = '#10b981'; // Success green
+                setButtonLabel(scanBtn, 'Refresh links');
+                setPanelStatus('Links are ready', `${urls.length} original-quality links available.`, 'success');
+                setProgress(100, 'success');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
             }
         } catch (error) {
             console.error('Fetch error:', error);
-            scanBtn.textContent = 'Fetch error';
-            progressFill.style.background = '#ef4444'; // Error red
+            setButtonLabel(scanBtn, 'Try again');
+            setPanelStatus('Album scan failed', 'Refresh Google Photos and try again.', 'error');
+            setProgress(100, 'error');
         } finally {
             isWorking = false;
             scanBtn.disabled = false;
+            scanBtn.removeAttribute('aria-busy');
         }
     }
 
@@ -562,16 +932,18 @@
 
         try {
             await navigator.clipboard.writeText(urls.join('\n'));
-            const prevText = copyBtn.textContent;
-            copyBtn.textContent = 'Copied to Clipboard! ✓';
+            setButtonContent(copyBtn, PATH_CHECK, 'Copied');
+            setPanelStatus('Links copied', `${urls.length} links are now on your clipboard.`, 'success');
             
             setTimeout(() => {
-                copyBtn.textContent = prevText;
+                setButtonContent(copyBtn, PATH_COPY, 'Copy links');
             }, 3000);
 
         } catch (error) {
             console.error('Copy error:', error);
-            copyBtn.textContent = 'Copy failed';
+            setButtonLabel(copyBtn, 'Copy failed');
+            setPanelStatus('Could not copy links', 'Allow clipboard access, then try again.', 'error');
+            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, 'Copy links'), 2500);
         }
     }
 
@@ -588,37 +960,41 @@
         copyBtn.disabled = true;
         downloadAllBtn.disabled = true;
 
-        downloadAllBtn.textContent = `Downloading... (0/${urls.length})`;
-        progressFill.style.width = '0%';
-        progressFill.style.background = 'var(--gpd-accent)';
+        downloadAllBtn.setAttribute('aria-busy', 'true');
+        setButtonLabel(downloadAllBtn, `Downloading 0/${urls.length}`);
+        setPanelStatus('Downloading album', 'Your browser may ask to allow multiple downloads.');
+        setProgress(0);
 
         try {
             for (let i = 0; i < urls.length; i++) {
-                downloadAllBtn.textContent = `Downloading... (${i + 1}/${urls.length})`;
+                setButtonLabel(downloadAllBtn, `Downloading ${i + 1}/${urls.length}`);
                 const percent = Math.round(((i + 1) / urls.length) * 100);
-                progressFill.style.width = `${percent}%`;
+                setProgress(percent);
+                setPanelStatus('Downloading album', `${i + 1} of ${urls.length} downloads started.`);
                 
                 await triggerSingleDownload(urls[i]);
                 await new Promise(r => setTimeout(r, 500));
             }
 
-            downloadAllBtn.textContent = `Downloaded ${urls.length} items ✓`;
-            progressFill.style.background = '#10b981';
+            setButtonContent(downloadAllBtn, PATH_CHECK, 'Downloads started');
+            setPanelStatus('Album download started', `${urls.length} items were sent to your browser.`, 'success');
+            setProgress(100, 'success');
             
             setTimeout(() => {
-                downloadAllBtn.textContent = 'Download All';
-                progressFill.style.width = '0%';
+                setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
             }, 4000);
 
         } catch (error) {
             console.error('Download all error:', error);
-            downloadAllBtn.textContent = 'Download error';
-            progressFill.style.background = '#ef4444';
+            setButtonLabel(downloadAllBtn, 'Download failed');
+            setPanelStatus('Download was interrupted', 'Allow multiple downloads, then try again.', 'error');
+            setProgress(100, 'error');
         } finally {
             isWorking = false;
             scanBtn.disabled = false;
             copyBtn.disabled = false;
             downloadAllBtn.disabled = false;
+            downloadAllBtn.removeAttribute('aria-busy');
         }
     }
 

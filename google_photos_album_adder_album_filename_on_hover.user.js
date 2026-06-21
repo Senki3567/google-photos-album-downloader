@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.2.0
+// @version      1.3.0
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -81,10 +81,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   }
 
   const albumCache = new Map();
-  const SVG_LINK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>';
-  const SVG_CHECK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-  const SVG_DOWNLOAD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>';
-  const SVG_ADD_ALBUM = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
+  const SVG_LINK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>';
+  const SVG_CHECK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+  const SVG_DOWNLOAD = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>';
+  const SVG_ADD_ALBUM = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
   const filenameCache = new Map();
   const albumDetailsCache = new Map(); // mediaKey -> { count, size, isLoading }
   let activeHoveredTile = null;
@@ -486,22 +486,255 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       background: rgba(70, 70, 70, 0.95) !important;
       border-color: rgba(255, 255, 255, 0.25) !important;
     }
+
+    /* Google Photos-native Material 3 refinement layer */
+    body {
+      --gp-card-bg: rgba(255, 255, 255, 0.96);
+      --gp-card-text: #1f1f1f;
+      --gp-card-border: #c4c7c5;
+      --gp-row-hover: #e8f0fe;
+      --gp-text-secondary: #5f6368;
+      --gp-surface-container: #f1f3f4;
+      --gp-surface-container-high: #e8eaed;
+      --gp-primary: #0b57d0;
+      --gp-primary-container: #d3e3fd;
+      --gp-on-primary-container: #041e49;
+      --gp-success: #137333;
+      --gp-error: #b3261e;
+      --gp-focus: #0b57d0;
+      --gp-card-shadow: 0 8px 24px rgba(60, 64, 67, 0.22), 0 2px 6px rgba(60, 64, 67, 0.14);
+    }
+    body.gp-dark-mode {
+      --gp-card-bg: rgba(32, 33, 36, 0.97) !important;
+      --gp-card-text: #e8eaed !important;
+      --gp-card-border: #5f6368 !important;
+      --gp-row-hover: #3c4043 !important;
+      --gp-text-secondary: #bdc1c6 !important;
+      --gp-surface-container: #292a2d !important;
+      --gp-surface-container-high: #3c4043 !important;
+      --gp-primary: #a8c7fa !important;
+      --gp-primary-container: #0842a0 !important;
+      --gp-on-primary-container: #d3e3fd !important;
+      --gp-success: #81c995 !important;
+      --gp-error: #f2b8b5 !important;
+      --gp-focus: #a8c7fa !important;
+      --gp-card-shadow: 0 10px 28px rgba(0, 0, 0, 0.46), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    }
+    .gp-hover-card {
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      padding: 8px;
+      gap: 6px;
+      border-radius: 16px;
+      border-color: var(--gp-card-border);
+      background: var(--gp-card-bg);
+      color: var(--gp-card-text);
+      font-size: 12px;
+      box-shadow: var(--gp-card-shadow);
+      backdrop-filter: blur(16px) saturate(135%);
+      -webkit-backdrop-filter: blur(16px) saturate(135%);
+    }
+    .gp-hover-row {
+      width: 100%;
+      min-height: 38px;
+      box-sizing: border-box;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+    }
+    .gp-filename-row {
+      background: var(--gp-surface-container);
+    }
+    .gp-hover-row:hover,
+    .gp-hover-row:focus-visible {
+      background: var(--gp-row-hover);
+    }
+    .gp-hover-row:focus-visible,
+    .gp-toolbar-btn:focus-visible,
+    .gpd-album-file-row:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--gp-focus) 55%, transparent);
+      outline-offset: 2px;
+    }
+    .gp-size-text,
+    .gpd-album-file-size {
+      color: var(--gp-text-secondary);
+      font-size: 11px !important;
+      font-variant-numeric: tabular-nums;
+      opacity: 1 !important;
+    }
+    .gp-toolbar-container {
+      top: -50px;
+      gap: 6px;
+    }
+    .gp-toolbar-btn {
+      width: 44px;
+      height: 44px;
+      flex: 0 0 44px;
+      padding: 0;
+      border-radius: 50%;
+      border: 1px solid var(--gp-card-border);
+      background: var(--gp-card-bg);
+      color: var(--gp-primary);
+      font: 600 12px/1.2 "Google Sans", Roboto, Arial, sans-serif;
+      box-shadow: var(--gp-card-shadow);
+      touch-action: manipulation;
+    }
+    .gp-toolbar-btn:hover {
+      background: var(--gp-primary-container);
+      border-color: var(--gp-primary);
+      color: var(--gp-on-primary-container);
+    }
+    body.gp-dark-mode .gp-toolbar-btn,
+    body.gp-dark-mode .gp-toolbar-btn:hover {
+      background: var(--gp-card-bg) !important;
+      border-color: var(--gp-card-border) !important;
+      color: var(--gp-primary) !important;
+    }
+    body.gp-dark-mode .gp-toolbar-btn:hover {
+      background: var(--gp-primary-container) !important;
+      color: var(--gp-on-primary-container) !important;
+    }
+    .gp-toolbar-btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+    .gp-album-access-btn {
+      min-width: 0;
+      width: auto;
+      height: 44px;
+      flex: 1 1 auto;
+      padding: 0 14px;
+      border-radius: 22px;
+    }
+    .gpd-album-hover-details {
+      top: 8px;
+      bottom: 8px;
+      left: 8px;
+      right: 8px;
+      padding: 10px;
+      border-radius: 16px;
+      border-color: var(--gp-card-border);
+      background: var(--gp-card-bg);
+      color: var(--gp-card-text);
+      font-size: 12px;
+      box-shadow: var(--gp-card-shadow);
+      backdrop-filter: blur(16px) saturate(135%);
+      -webkit-backdrop-filter: blur(16px) saturate(135%);
+    }
+    .gpd-album-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 32px;
+      padding: 0 4px 8px;
+      margin-bottom: 6px;
+      border-bottom: 1px solid var(--gp-card-border);
+      color: var(--gp-card-text);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .gpd-album-hover-list {
+      gap: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gp-card-border) transparent;
+    }
+    .gpd-album-file-row {
+      width: 100%;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 8px;
+      box-sizing: border-box;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      text-align: left;
+    }
+    .gpd-album-file-row:hover {
+      background: var(--gp-row-hover);
+    }
+    .gpd-album-empty {
+      padding: 20px 10px;
+      color: var(--gp-text-secondary);
+      text-align: center;
+      line-height: 1.45;
+    }
+    #gp-toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 999999;
+      max-width: min(320px, calc(100vw - 40px));
+      padding: 12px 16px;
+      border: 1px solid var(--gp-card-border);
+      border-radius: 14px;
+      background: var(--gp-card-bg);
+      color: var(--gp-card-text);
+      font: 500 13px/1.45 "Google Sans", Roboto, Arial, sans-serif;
+      box-shadow: var(--gp-card-shadow);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      backdrop-filter: blur(16px) saturate(135%);
+      -webkit-backdrop-filter: blur(16px) saturate(135%);
+    }
+    #gp-toast[data-visible="true"] {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    #gp-toast[data-tone="success"] {
+      border-color: var(--gp-success);
+    }
+    #gp-toast[data-tone="error"] {
+      border-color: var(--gp-error);
+    }
+    @media (max-width: 420px) {
+      #gp-toast {
+        right: 16px;
+        bottom: 16px;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .gp-hover-card,
+      .gpd-album-hover-details,
+      .gp-toolbar-container,
+      .gp-toolbar-btn,
+      #gp-toast {
+        transition-duration: 1ms !important;
+      }
+    }
   `;
   document.head.appendChild(style);
 
   /* =============================================================
    *  4. EASY ALBUM ADDER
    * ============================================================= */
-  const toast = (msg, { duration = 1800 } = {}) => {
+  const toast = (msg, { duration = 2200, tone = 'neutral' } = {}) => {
     let el = document.getElementById('gp-toast');
     if (!el) {
       el = document.createElement('div');
       el.id = 'gp-toast';
-      el.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:999999;background:rgba(30,30,30,.92);color:#fff;padding:8px 14px;border-radius:8px;font:13px/1.4 system-ui;box-shadow:0 4px 14px rgba(0,0,0,.4);pointer-events:none;transition:opacity .25s ease;';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      el.setAttribute('aria-atomic', 'true');
       document.body.appendChild(el);
     }
-    el.textContent = msg; el.style.opacity = '1';
-    clearTimeout(el._t); el._t = setTimeout(() => (el.style.opacity = '0'), duration);
+    el.textContent = msg;
+    el.dataset.tone = tone;
+    el.dataset.visible = 'true';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => (el.dataset.visible = 'false'), duration);
   };
 
   const busyTexts = [/Adding/i, /Deleting album/i, /Album deleted/i, /Waiting for Photos/i, /\d+\s+(?:item|items)\s+(?:added to album|already in album|new item added)/i];
@@ -606,16 +839,16 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       toast('Waiting for Photos to finish...');
       for (let i = 0; i < 15; i++) { await sleep(200); if (!isBusy()) break; }
     }
-    if (isBusy()) return toast('Photos is still busy');
+    if (isBusy()) return toast('Photos is still busy. Wait a moment and try again.', { tone: 'error' });
     if (isInViewer()) await addInViewer(); else await addInGrid();
   }
 
   window.addEventListener('keydown', async (e) => {
     if (e.target.matches('input,textarea') || e.target.isContentEditable || isAddModal()) return;
-    const match = hk => e.key?.toLowerCase() === hk.key && !!e.shiftKey === !!hk.shift && !!e.altKey === !!hk.alt && !!e.ctrlKey === !!hk.ctrl && !!e.metaKey === !!hk.meta;
+    const match = hk => e.key?.toLowerCase() === hk.key.toLowerCase() && !!e.shiftKey === !!hk.shift && !!e.altKey === !!hk.alt && !!e.ctrlKey === !!hk.ctrl && !!e.metaKey === !!hk.meta;
     if (match(HOTKEY_ADD)) {
       e.preventDefault();
-      try { await addAlbum(); saveSel(); } catch (err) { toast(err?.message || 'Could not open Add to album'); }
+      try { await addAlbum(); saveSel(); } catch (err) { toast(err?.message || 'Could not open Add to album', { tone: 'error' }); }
     }
     if (match(HOTKEY_RECALL)) {
       e.preventDefault();
@@ -817,8 +1050,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         hoverCard.className = 'gp-hover-card';
         
         // 1. Filename row
-        const fnRow = document.createElement('div');
+        const fnRow = document.createElement('button');
+        fnRow.type = 'button';
         fnRow.className = 'gp-hover-row gp-filename-row';
+        fnRow.setAttribute('aria-label', 'Copy filename');
         const fnText = document.createElement('span');
         fnText.className = 'gp-text';
         fnText.textContent = 'Loading filename...';
@@ -854,24 +1089,30 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         
         // 0. Album Button (only if NOT on album page)
         if (!isAlbumPage) {
-          const albBtn = document.createElement('div');
+          const albBtn = document.createElement('button');
+          albBtn.type = 'button';
           albBtn.className = 'gp-toolbar-btn gp-album-access-btn';
           albBtn.title = 'View Album';
+          albBtn.setAttribute('aria-label', 'Open containing album');
           albBtn.textContent = 'Checking albums...';
           toolbar.appendChild(albBtn);
         }
 
         // 1. Copy Link Button
-        const copyLinkBtn = document.createElement('div');
+        const copyLinkBtn = document.createElement('button');
+        copyLinkBtn.type = 'button';
         copyLinkBtn.className = 'gp-toolbar-btn gp-copy-btn';
         copyLinkBtn.title = 'Copy Direct Download Link';
+        copyLinkBtn.setAttribute('aria-label', 'Copy direct download link');
         copyLinkBtn.innerHTML = SVG_LINK;
         toolbar.appendChild(copyLinkBtn);
 
         // 2. Direct Download Button
-        const downloadBtn = document.createElement('div');
+        const downloadBtn = document.createElement('button');
+        downloadBtn.type = 'button';
         downloadBtn.className = 'gp-toolbar-btn gp-download-btn';
         downloadBtn.title = 'Download Original File';
+        downloadBtn.setAttribute('aria-label', 'Download original file');
         downloadBtn.innerHTML = SVG_DOWNLOAD;
         toolbar.appendChild(downloadBtn);
 
@@ -887,24 +1128,28 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         evt.stopPropagation();
         const currentKey = tile.getAttribute('data-gp-media-key');
         if (!currentKey) return;
-        
-        const dUrl = await fetchDownloadUrl(currentKey);
-        if (dUrl) {
-          navigator.clipboard.writeText(dUrl).then(() => {
-            copyLinkBtn.innerHTML = SVG_CHECK;
-            copyLinkBtn.style.setProperty('color', '#10b981', 'important');
-            setTimeout(() => {
-              copyLinkBtn.innerHTML = SVG_LINK;
-              copyLinkBtn.style.removeProperty('color');
-            }, 1500);
-          });
-        } else {
-          copyLinkBtn.innerHTML = '<span style="font-size: 10px; color: #ef4444;">!</span>';
-          copyLinkBtn.style.setProperty('color', '#ef4444', 'important');
+
+        copyLinkBtn.disabled = true;
+        copyLinkBtn.setAttribute('aria-busy', 'true');
+        try {
+          const dUrl = await fetchDownloadUrl(currentKey);
+          if (!dUrl) throw new Error('Download link unavailable');
+          await navigator.clipboard.writeText(dUrl);
+          copyLinkBtn.innerHTML = SVG_CHECK;
+          copyLinkBtn.style.setProperty('color', 'var(--gp-success)', 'important');
+          copyLinkBtn.setAttribute('aria-label', 'Direct download link copied');
+          toast('Direct download link copied', { tone: 'success' });
           setTimeout(() => {
             copyLinkBtn.innerHTML = SVG_LINK;
             copyLinkBtn.style.removeProperty('color');
+            copyLinkBtn.setAttribute('aria-label', 'Copy direct download link');
           }, 1500);
+        } catch (error) {
+          console.warn('[GP-Master] Copy direct link failed', error);
+          toast('Could not copy the direct link. Try again.', { tone: 'error' });
+        } finally {
+          copyLinkBtn.disabled = false;
+          copyLinkBtn.removeAttribute('aria-busy');
         }
       };
 
@@ -915,22 +1160,27 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         const currentKey = tile.getAttribute('data-gp-media-key');
         if (!currentKey) return;
 
-        const dUrl = await fetchDownloadUrl(currentKey);
-        if (dUrl) {
+        downloadBtn.disabled = true;
+        downloadBtn.setAttribute('aria-busy', 'true');
+        try {
+          const dUrl = await fetchDownloadUrl(currentKey);
+          if (!dUrl) throw new Error('Download link unavailable');
           triggerSingleDownload(dUrl);
           downloadBtn.innerHTML = SVG_CHECK;
-          downloadBtn.style.setProperty('color', '#10b981', 'important');
+          downloadBtn.style.setProperty('color', 'var(--gp-success)', 'important');
+          downloadBtn.setAttribute('aria-label', 'Download started');
+          toast('Original file download started', { tone: 'success' });
           setTimeout(() => {
             downloadBtn.innerHTML = SVG_DOWNLOAD;
             downloadBtn.style.removeProperty('color');
+            downloadBtn.setAttribute('aria-label', 'Download original file');
           }, 1500);
-        } else {
-          downloadBtn.innerHTML = '<span style="font-size: 10px; color: #ef4444;">!</span>';
-          downloadBtn.style.setProperty('color', '#ef4444', 'important');
-          setTimeout(() => {
-            downloadBtn.innerHTML = SVG_DOWNLOAD;
-            downloadBtn.style.removeProperty('color');
-          }, 1500);
+        } catch (error) {
+          console.warn('[GP-Master] Direct download failed', error);
+          toast('Could not start the download. Try again.', { tone: 'error' });
+        } finally {
+          downloadBtn.disabled = false;
+          downloadBtn.removeAttribute('aria-busy');
         }
       };
 
@@ -984,21 +1234,28 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       // Click to copy filename
       const fnRow = hoverCard.querySelector('.gp-filename-row');
       fnRow.title = filename;
-      fnRow.onclick = (evt) => {
+      fnRow.setAttribute('aria-label', `Copy filename: ${filename}`);
+      fnRow.onclick = async (evt) => {
         evt.preventDefault();
         evt.stopPropagation();
         // Extract clean filename without any trailing size suffix like (12.3 MiB)
         const cleanName = filename.replace(/\s*\([^)]+\)$/, '');
-        navigator.clipboard.writeText(cleanName);
-        fnText.textContent = 'Copied!';
-        fnText.style.setProperty('color', '#10b981', 'important'); // Green
-        const prevSizeText = fnSize.textContent;
-        fnSize.textContent = '';
-        setTimeout(() => {
-          fnText.textContent = filename;
-          fnText.style.removeProperty('color');
-          fnSize.textContent = prevSizeText;
-        }, 1200);
+        try {
+          await navigator.clipboard.writeText(cleanName);
+          fnText.textContent = 'Filename copied';
+          fnText.style.setProperty('color', 'var(--gp-success)', 'important');
+          const prevSizeText = fnSize.textContent;
+          fnSize.textContent = '';
+          toast('Filename copied', { tone: 'success' });
+          setTimeout(() => {
+            fnText.textContent = filename;
+            fnText.style.removeProperty('color');
+            fnSize.textContent = prevSizeText;
+          }, 1200);
+        } catch (error) {
+          console.warn('[GP-Master] Filename copy failed', error);
+          toast('Could not copy the filename.', { tone: 'error' });
+        }
       };
 
       // Populate album list as clickable button rows
@@ -1006,14 +1263,20 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         let albBtn = toolbar.querySelector('.gp-album-access-btn');
         if (albBtn) {
           if (!names.length) {
-            albBtn.textContent = '(not in any albums)';
-            albBtn.style.color = '#ff8a80';
+            albBtn.textContent = 'Not in an album';
+            albBtn.style.color = 'var(--gp-error)';
             albBtn.onclick = null;
-            albBtn.style.cursor = 'default';
+            albBtn.disabled = true;
+            albBtn.title = 'This item is not in an album';
+            albBtn.setAttribute('aria-label', 'This item is not in an album');
           } else {
-            albBtn.textContent = names.map(a => a.title).join(', ');
+            const remainingCount = Math.max(0, names.length - 1);
+            albBtn.textContent = remainingCount ? `${names[0].title} +${remainingCount}` : names[0].title;
             albBtn.style.color = 'inherit';
             albBtn.style.cursor = 'pointer';
+            albBtn.disabled = false;
+            albBtn.title = names.map(a => a.title).join(', ');
+            albBtn.setAttribute('aria-label', `Open album ${names[0].title}`);
             albBtn.onclick = (evt) => {
               evt.preventDefault();
               evt.stopPropagation();
@@ -1035,7 +1298,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     if (hoverCard) {
       hoverCard.classList.remove('gp-hover-card--show');
       setTimeout(() => {
-        if (hoverCard.parentNode && !tile.matches(':hover')) {
+        if (hoverCard.parentNode && !tile.matches(':hover, :focus-within')) {
           hoverCard.parentNode.removeChild(hoverCard);
         }
       }, 200);
@@ -1059,23 +1322,17 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     container.innerHTML = '';
     if (!items || !items.length) {
       const empty = document.createElement('div');
-      empty.textContent = '(no items found)';
-      empty.style.opacity = '0.5';
-      empty.style.textAlign = 'center';
-      empty.style.paddingTop = '10px';
+      empty.className = 'gpd-album-empty';
+      empty.textContent = 'No photos or videos found in this album.';
       container.appendChild(empty);
       return;
     }
     items.forEach(item => {
-      const itemDiv = document.createElement('div');
-      Object.assign(itemDiv.style, {
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '8px',
-          cursor: 'pointer'
-      });
-      itemDiv.title = item.filename;
+      const itemDiv = document.createElement('button');
+      itemDiv.type = 'button';
+      itemDiv.className = 'gpd-album-file-row';
+      itemDiv.title = `Copy ${item.filename}`;
+      itemDiv.setAttribute('aria-label', `Copy filename ${item.filename}`);
 
       const nameSpan = document.createElement('span');
       nameSpan.className = 'gp-text';
@@ -1089,26 +1346,28 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       });
 
       const sizeSpan = document.createElement('span');
+      sizeSpan.className = 'gpd-album-file-size';
       sizeSpan.textContent = formatBytes(item.size);
-      Object.assign(sizeSpan.style, {
-          fontSize: '9px',
-          opacity: '0.7',
-          whiteSpace: 'nowrap'
-      });
+      sizeSpan.style.whiteSpace = 'nowrap';
 
-      itemDiv.onclick = (evt) => {
+      itemDiv.onclick = async (evt) => {
         evt.preventDefault();
         evt.stopPropagation();
         const cleanName = item.filename.replace(/\s*\([^)]+\)$/, '');
-        navigator.clipboard.writeText(cleanName);
-        
-        const originalText = nameSpan.textContent;
-        nameSpan.textContent = 'Copied!';
-        nameSpan.style.color = '#10b981';
-        setTimeout(() => {
-          nameSpan.textContent = originalText;
-          nameSpan.style.color = '';
-        }, 1000);
+        try {
+          await navigator.clipboard.writeText(cleanName);
+          const originalText = nameSpan.textContent;
+          nameSpan.textContent = 'Filename copied';
+          nameSpan.style.color = 'var(--gp-success)';
+          toast('Filename copied', { tone: 'success' });
+          setTimeout(() => {
+            nameSpan.textContent = originalText;
+            nameSpan.style.color = '';
+          }, 1000);
+        } catch (error) {
+          console.warn('[GP-Master] Album filename copy failed', error);
+          toast('Could not copy the filename.', { tone: 'error' });
+        }
       };
 
       itemDiv.appendChild(nameSpan);
@@ -1136,19 +1395,16 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.className = 'gpd-album-hover-details';
+        overlay.setAttribute('role', 'region');
+        overlay.setAttribute('aria-label', 'Album file details');
         
         const header = document.createElement('div');
-        Object.assign(header.style, {
-            display: 'flex',
-            justifyContent: 'center',
-            fontWeight: '600',
-            borderBottom: '1px solid var(--gp-card-border)',
-            paddingBottom: '4px',
-            marginBottom: '4px'
-        });
+        header.className = 'gpd-album-summary';
         
         sizeText = document.createElement('span');
-        sizeText.textContent = 'Loading size...';
+        sizeText.setAttribute('role', 'status');
+        sizeText.setAttribute('aria-live', 'polite');
+        sizeText.textContent = 'Loading album details…';
         
         header.appendChild(sizeText);
         overlay.appendChild(header);
@@ -1170,37 +1426,39 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     const cached = albumDetailsCache.get(key);
     if (cached) {
         if (cached.isLoading) {
-            sizeText.textContent = `Loading size...`;
+            sizeText.textContent = 'Loading album details…';
         } else {
-            sizeText.textContent = formatBytes(cached.size);
+            sizeText.textContent = `${cached.count} items · ${formatBytes(cached.size)}`;
             renderFileList(listContainer, cached.items);
         }
         return;
     }
 
-    sizeText.textContent = `Loading size...`;
+    sizeText.textContent = 'Loading album details…';
     albumDetailsCache.set(key, { count: 0, size: 0, items: [], isLoading: true });
 
     try {
         const details = await fetchAlbumDetails(key, (fetched, total) => {
-            if (card.matches(':hover')) {
-                sizeText.textContent = `Loading size... (${fetched}/${total})`;
+            if (card.matches(':hover, :focus-within')) {
+                sizeText.textContent = `Loading album details · ${fetched}/${total}`;
             }
         });
         albumDetailsCache.set(key, { count: details.count, size: details.size, items: details.items, isLoading: false });
-        if (card.matches(':hover')) {
-            sizeText.textContent = formatBytes(details.size);
+        if (card.matches(':hover, :focus-within')) {
+            sizeText.textContent = `${details.count} items · ${formatBytes(details.size)}`;
             renderFileList(listContainer, details.items);
         }
     } catch (err) {
         console.error('Failed to load album details:', err);
-        sizeText.textContent = `Error loading`;
+        sizeText.textContent = 'Could not load album details';
+        toast('Could not load album details. Hover again to retry.', { tone: 'error' });
         albumDetailsCache.delete(key);
     }
   }
 
   function handleAlbumMouseLeave(e) {
     const card = e.currentTarget;
+    if (card.matches(':focus-within')) return;
     const imgContainer = card.querySelector('img')?.parentElement || card.firstElementChild || card;
     const overlay = imgContainer.querySelector('.gpd-album-hover-details');
     if (overlay) {
@@ -1234,12 +1492,12 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     updateThemeClass();
     
     // Safety cleanup for stuck hover menus
-    if (activeHoveredTile && !activeHoveredTile.matches(':hover')) {
+    if (activeHoveredTile && !activeHoveredTile.matches(':hover, :focus-within')) {
       activeHoveredTile._gpIsHovered = false;
       hideHoverUI(activeHoveredTile);
       activeHoveredTile = null;
     }
-    if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover')) {
+    if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover, :focus-within')) {
       activeHoveredAlbumCard._gpIsHovered = false;
       handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
       activeHoveredAlbumCard = null;
@@ -1323,6 +1581,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         const relTile = e.relatedTarget && typeof e.relatedTarget.closest === 'function' ? e.relatedTarget.closest('.RY3tic, .QcpS9c.ckGgle') : null;
         const relTileResolved = relTile ? (relTile.classList.contains('RY3tic') ? relTile : getTile(relTile)) : null;
         if (relTileResolved === tile) return; // Still inside the same tile or its checkbox
+        if (tile.matches(':focus-within')) return;
         tile._gpIsHovered = false;
         if (activeHoveredTile === tile) activeHoveredTile = null;
         hideHoverUI(tile);
@@ -1334,6 +1593,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     const card = e.target.closest('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]');
     if (card) {
       if (e.relatedTarget && card.contains(e.relatedTarget)) return;
+      if (card.matches(':focus-within')) return;
       if (card._gpIsHovered) {
         card._gpIsHovered = false;
         if (activeHoveredAlbumCard === card) activeHoveredAlbumCard = null;
@@ -1342,19 +1602,61 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
   });
 
+  // Keyboard parity: reveal the same controls when a photo or album receives focus.
+  document.body.addEventListener('focusin', e => {
+    if (!e.target || typeof e.target.closest !== 'function') return;
+
+    const tileTarget = e.target.closest('.RY3tic, .QcpS9c.ckGgle');
+    if (tileTarget) {
+      const tile = tileTarget.classList.contains('RY3tic') ? tileTarget : getTile(tileTarget);
+      if (tile && !tile._gpIsHovered) {
+        tile._gpIsHovered = true;
+        activeHoveredTile = tile;
+        showHoverUI(tile, e);
+      }
+      return;
+    }
+
+    const card = e.target.closest('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]');
+    if (card && !(card.getAttribute('href') || '').includes('/photo/') && !card._gpIsHovered) {
+      card._gpIsHovered = true;
+      activeHoveredAlbumCard = card;
+      handleAlbumMouseEnter({ currentTarget: card });
+    }
+  });
+
+  document.body.addEventListener('focusout', e => {
+    if (!e.target || typeof e.target.closest !== 'function') return;
+    const tile = e.target.closest('.RY3tic');
+    const card = e.target.closest('a[href*="/album/"], a[href*="/share/"], a[href*="/direct/"]');
+
+    setTimeout(() => {
+      if (tile && !tile.matches(':focus-within, :hover')) {
+        tile._gpIsHovered = false;
+        if (activeHoveredTile === tile) activeHoveredTile = null;
+        hideHoverUI(tile);
+      }
+      if (card && !card.matches(':focus-within, :hover')) {
+        card._gpIsHovered = false;
+        if (activeHoveredAlbumCard === card) activeHoveredAlbumCard = null;
+        handleAlbumMouseLeave({ currentTarget: card });
+      }
+    }, 0);
+  });
+
   // Global throttled mousemove backup to clean up stuck hover menus
   let mousemoveTimeout = null;
   document.body.addEventListener('mousemove', () => {
     if (mousemoveTimeout) return;
     mousemoveTimeout = setTimeout(() => {
       // 1. Clean up tile hover
-      if (activeHoveredTile && !activeHoveredTile.matches(':hover')) {
+      if (activeHoveredTile && !activeHoveredTile.matches(':hover, :focus-within')) {
         activeHoveredTile._gpIsHovered = false;
         hideHoverUI(activeHoveredTile);
         activeHoveredTile = null;
       }
       // 2. Clean up album card hover
-      if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover')) {
+      if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover, :focus-within')) {
         activeHoveredAlbumCard._gpIsHovered = false;
         handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
         activeHoveredAlbumCard = null;
