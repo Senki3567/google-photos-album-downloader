@@ -2,6 +2,8 @@
 
 A lightweight, premium, and secure Tampermonkey userscript to retrieve and download original quality direct download links for all files (photos and videos) in any Google Photos shared or private album.
 
+![GP Downloader Preview](./preview.png)
+
 ---
 
 ## Key Features
@@ -17,9 +19,18 @@ A lightweight, premium, and secure Tampermonkey userscript to retrieve and downl
 
 ## Installation
 
-1. Install a Userscript Manager extension in your browser:
-   - [Tampermonkey](https://www.tampermonkey.net/) (Recommended)
-   - [Violentmonkey](https://violentmonkey.github.io/)
+### Direct Install (Fastest)
+
+1. Make sure you have a Userscript Manager installed (e.g., [Tampermonkey](https://www.tampermonkey.net/) or [Violentmonkey](https://violentmonkey.github.io/)).
+2. Click the badge below to install directly:
+
+[![Install directly](https://img.shields.io/badge/Install-Tampermonkey-green?style=for-the-badge&logo=tampermonkey)](https://github.com/<your-github-username>/<your-repo-name>/raw/main/google_photos_album_downloader.user.js)
+
+*(Note: Replace `<your-github-username>` and `<your-repo-name>` with your actual GitHub username and repository name after publishing to make this button active.)*
+
+### Manual Install
+
+1. Install a Userscript Manager extension in your browser.
 2. Copy the code from [google_photos_album_downloader.user.js](./google_photos_album_downloader.user.js).
 3. Open your Userscript Manager Dashboard and create a new script.
 4. Paste the copied code and save it (Ctrl + S).
@@ -41,6 +52,8 @@ A lightweight, premium, and secure Tampermonkey userscript to retrieve and downl
 
 Userscript Tampermonkey siêu nhẹ, mượt mà và bảo mật giúp lấy link tải trực tiếp chất lượng gốc của tất cả ảnh và video trong bất kỳ album chia sẻ hoặc album cá nhân nào trên Google Photos.
 
+![GP Downloader Preview](./preview.png)
+
 ## Các Tính Năng Nổi Bật
 
 - **Tải Xuống Tất Cả (Download All)**: Tự động kích hoạt tải xuống hàng loạt, tuần tự (cách nhau 500ms) bằng iframe ẩn. Giúp tránh việc trình duyệt bị nghẽn hoặc chặn tải hàng loạt.
@@ -51,9 +64,18 @@ Userscript Tampermonkey siêu nhẹ, mượt mà và bảo mật giúp lấy lin
 
 ## Hướng Dẫn Cài Đặt
 
-1. Cài đặt tiện ích quản lý Userscript cho trình duyệt của bạn:
-   - [Tampermonkey](https://www.tampermonkey.net/) (Khuyên dùng)
-   - [Violentmonkey](https://violentmonkey.github.io/)
+### Cài Đặt Trực Tiếp (Nhanh Nhất)
+
+1. Đảm bảo bạn đã cài đặt tiện ích quản lý Userscript (ví dụ: [Tampermonkey](https://www.tampermonkey.net/) hoặc [Violentmonkey](https://violentmonkey.github.io/)).
+2. Nhấp vào nút dưới đây để cài đặt trực tiếp:
+
+[![Cài đặt trực tiếp](https://img.shields.io/badge/Cài_Đặt-Tampermonkey-green?style=for-the-badge&logo=tampermonkey)](https://github.com/<your-github-username>/<your-repo-name>/raw/main/google_photos_album_downloader.user.js)
+
+*(Lưu ý: Thay thế `<your-github-username>` và `<your-repo-name>` bằng Tên tài khoản GitHub và Tên kho lưu trữ thực tế của bạn sau khi đăng tải lên GitHub để nút này hoạt động chính xác).*
+
+### Cài Đặt Thủ Công
+
+1. Cài đặt tiện ích quản lý Userscript cho trình duyệt của bạn.
 2. Sao chép toàn bộ mã nguồn của file [google_photos_album_downloader.user.js](./google_photos_album_downloader.user.js).
 3. Mở Bảng điều khiển (Dashboard) của Tampermonkey/Violentmonkey, chọn tạo script mới.
 4. Dán mã nguồn đã copy vào và nhấn **Lưu** (Ctrl + S).
