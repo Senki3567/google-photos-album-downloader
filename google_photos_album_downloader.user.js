@@ -50,6 +50,107 @@
     let albumTitle = '';
     let fetchedLinks = [];
 
+    const mediaKeyToDownloadUrl = new Map();
+
+    function extractMediaKey(el) {
+        if (!el) return null;
+        const a = el.closest('a[href*="/photo/"]') || el.parentElement?.querySelector('a[href*="/photo/"]');
+        const m = a?.getAttribute('href')?.match(/\/photo\/([A-Za-z0-9_\-]+)/);
+        if (m) return m[1];
+        const bg = el.style?.backgroundImage || '';
+        const n = bg.match(/(AF1Qip|AP1Gcz)[A-Za-z0-9_\-]+/);
+        return n ? n[0] : null;
+    }
+
+    function handleTileMouseEnter(e) {
+        const tile = e.currentTarget;
+        const key = extractMediaKey(tile);
+        if (!key || !mediaKeyToDownloadUrl.has(key)) return;
+
+        const downloadUrl = mediaKeyToDownloadUrl.get(key);
+        
+        let label = tile.querySelector('.gpd-tile-hover-link');
+        if (label && label.id !== `gpd-hl-${key}`) {
+            label.parentNode.removeChild(label);
+            label = null;
+        }
+
+        if (!label) {
+            label = createElement('div', {
+                position: 'absolute',
+                top: '10px',
+                right: '10px',
+                zIndex: '99999',
+                background: 'rgba(30, 31, 34, 0.95)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
+                borderRadius: '16px',
+                padding: '4px 10px',
+                color: '#e8eaed',
+                fontSize: '11px',
+                fontFamily: '"Google Sans", Roboto, sans-serif',
+                fontWeight: '500',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                opacity: '0',
+                transform: 'translateY(-4px)'
+            }, { id: `gpd-hl-${key}`, textContent: '🔗 Copy Link' });
+
+            label.className = 'gpd-tile-hover-link';
+
+            label.addEventListener('click', (evt) => {
+                evt.preventDefault();
+                evt.stopPropagation();
+                navigator.clipboard.writeText(downloadUrl).then(() => {
+                    label.textContent = 'Copied!';
+                    applyStyles(label, { background: '#137333', color: '#ffffff' });
+                    setTimeout(() => {
+                        label.textContent = '🔗 Copy Link';
+                        applyStyles(label, { background: 'rgba(30, 31, 34, 0.95)', color: '#e8eaed' });
+                    }, 1500);
+                });
+            });
+
+            label.addEventListener('mouseenter', () => {
+                applyStyles(label, { transform: 'scale(1.05)' });
+            });
+            label.addEventListener('mouseleave', () => {
+                applyStyles(label, { transform: 'scale(1)' });
+            });
+
+            tile.appendChild(label);
+        }
+
+        setTimeout(() => {
+            applyStyles(label, { opacity: '1', transform: 'translateY(0)' });
+        }, 10);
+    }
+
+    function handleTileMouseLeave(e) {
+        const tile = e.currentTarget;
+        const label = tile.querySelector('.gpd-tile-hover-link');
+        if (label) {
+            applyStyles(label, { opacity: '0', transform: 'translateY(-4px)' });
+            setTimeout(() => {
+                if (label.parentNode && label.style.opacity === '0') {
+                    label.parentNode.removeChild(label);
+                }
+            }, 160);
+        }
+    }
+
+    function attachTileListeners() {
+        document.querySelectorAll('.RY3tic').forEach(tile => {
+            if (tile.hasAttribute('data-gpd-hover-attached')) return;
+            tile.setAttribute('data-gpd-hover-attached', '1');
+            tile.addEventListener('mouseenter', handleTileMouseEnter);
+            tile.addEventListener('mouseleave', handleTileMouseLeave);
+        });
+    }
+
     function init() {
         console.log('[GP Downloader] DOM bootstrap complete. Creating UI...');
         
@@ -340,6 +441,10 @@
 
         // Start URL listener
         startUrlListener();
+
+        // Listen for scroll to dynamically attach hover links to recycled grid cards
+        window.addEventListener('scroll', attachTileListeners, { passive: true });
+        setInterval(attachTileListeners, 500);
     }
 
     // Detect SPA Navigation Changes
@@ -416,6 +521,7 @@
                 resultsBox.innerHTML = '';
             }
             fetchedLinks = [];
+            mediaKeyToDownloadUrl.clear();
         }
     }
 
@@ -479,6 +585,7 @@
         resultsBox.style.display = 'none';
         resultsBox.innerHTML = '';
         fetchedLinks = [];
+        mediaKeyToDownloadUrl.clear();
 
         try {
             statusText.textContent = 'Fetching album items...';
@@ -543,6 +650,7 @@
                     const itemDetails = await sendRpc('VrseUb', [item.mediaKey, null, authKey, null, albumMediaKey]);
                     const downloadUrl = itemDetails[7] || itemDetails[1]; // download_original_url or download_url
                     if (downloadUrl) {
+                        mediaKeyToDownloadUrl.set(item.mediaKey, downloadUrl);
                         return { fileName, url: downloadUrl };
                     }
                 } catch (e) {
