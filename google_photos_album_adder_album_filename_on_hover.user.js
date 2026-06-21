@@ -333,13 +333,11 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       pointer-events: auto;
       z-index: 10;
       opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     .gp-hover-card--show {
       opacity: 1;
-      transform: translateY(0);
     }
     .gp-hover-row {
       display: flex;
@@ -400,15 +398,13 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       flex-direction: column;
       z-index: 10;
       opacity: 0;
-      transform: translateY(6px);
-      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-sizing: border-box;
       pointer-events: auto;
     }
     
     .gpd-album-hover-details--show {
       opacity: 1 !important;
-      transform: translateY(0) !important;
     }
 
     /* Style for scrollbar in album hover list */
@@ -430,21 +426,22 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       border-radius: 2px;
     }
 
-    /* Floating toolbar container positioned above the hover card on the right */
+    /* Floating toolbar container positioned above the hover card */
     .gp-toolbar-container {
       position: absolute;
       top: -34px;
+      left: 2px;
       right: 2px;
       display: flex;
+      justify-content: flex-end;
       gap: 6px;
       z-index: 11;
       opacity: 0;
-      transform: scale(0.8);
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
     }
     .gp-hover-card--show .gp-toolbar-container {
       opacity: 1;
-      transform: scale(1);
     }
     
     /* Toolbar Action Buttons (Glassmorphism circular buttons) */
@@ -462,7 +459,19 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       justify-content: center;
       cursor: pointer;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-      transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+      transition: background 0.15s ease, color 0.15s ease;
+      pointer-events: auto;
+    }
+    .gp-album-access-btn {
+      flex: 1;
+      border-radius: 14px;
+      padding: 0 10px;
+      width: auto;
+      justify-content: flex-start;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     body.gp-dark-mode .gp-toolbar-btn {
       background: rgba(45, 45, 45, 0.9) !important; /* Glassmorphism dark background */
@@ -471,7 +480,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
     .gp-toolbar-btn:hover {
       background: rgba(240, 240, 240, 0.95);
-      transform: scale(1.05);
       border-color: rgba(0, 0, 0, 0.2);
     }
     body.gp-dark-mode .gp-toolbar-btn:hover {
@@ -814,20 +822,26 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         const fnText = document.createElement('span');
         fnText.className = 'gp-text';
         fnText.textContent = 'Loading filename...';
+        Object.assign(fnText.style, {
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            flex: '1',
+            textAlign: 'left'
+        });
         fnRow.appendChild(fnText);
+
+        const fnSize = document.createElement('span');
+        fnSize.className = 'gp-size-text';
+        Object.assign(fnSize.style, {
+            fontSize: '9px',
+            opacity: '0.7',
+            whiteSpace: 'nowrap',
+            marginLeft: '8px'
+        });
+        fnRow.appendChild(fnSize);
         
         hoverCard.appendChild(fnRow);
-        
-        // 2. Albums row (only if NOT on album page)
-        if (!isAlbumPage) {
-          const albRow = document.createElement('div');
-          albRow.className = 'gp-hover-row gp-albums-row';
-          const albList = document.createElement('span');
-          albList.className = 'gp-text gp-albums-list';
-          albList.textContent = 'Checking albums...';
-          albRow.appendChild(albList);
-          hoverCard.appendChild(albRow);
-        }
         
         tile.appendChild(hoverCard);
       }
@@ -838,6 +852,15 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         toolbar = document.createElement('div');
         toolbar.className = 'gp-toolbar-container';
         
+        // 0. Album Button (only if NOT on album page)
+        if (!isAlbumPage) {
+          const albBtn = document.createElement('div');
+          albBtn.className = 'gp-toolbar-btn gp-album-access-btn';
+          albBtn.title = 'View Album';
+          albBtn.textContent = 'Checking albums...';
+          toolbar.appendChild(albBtn);
+        }
+
         // 1. Copy Link Button
         const copyLinkBtn = document.createElement('div');
         copyLinkBtn.className = 'gp-toolbar-btn gp-copy-btn';
@@ -912,6 +935,18 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       };
 
       const fnText = hoverCard.querySelector('.gp-filename-row .gp-text');
+      let fnSize = hoverCard.querySelector('.gp-filename-row .gp-size-text');
+      if (!fnSize) {
+        fnSize = document.createElement('span');
+        fnSize.className = 'gp-size-text';
+        Object.assign(fnSize.style, {
+            fontSize: '9px',
+            opacity: '0.7',
+            whiteSpace: 'nowrap',
+            marginLeft: '8px'
+        });
+        hoverCard.querySelector('.gp-filename-row').appendChild(fnSize);
+      }
 
       // Add fade in
       setTimeout(() => hoverCard.classList.add('gp-hover-card--show'), 10);
@@ -943,11 +978,12 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         size = res.size;
       }
 
-      const sizeText = size ? ` (${formatBytes(size)})` : '';
-      fnText.textContent = filename + sizeText;
+      fnText.textContent = filename;
+      fnSize.textContent = size ? formatBytes(size) : '';
 
       // Click to copy filename
       const fnRow = hoverCard.querySelector('.gp-filename-row');
+      fnRow.title = filename;
       fnRow.onclick = (evt) => {
         evt.preventDefault();
         evt.stopPropagation();
@@ -956,46 +992,36 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         navigator.clipboard.writeText(cleanName);
         fnText.textContent = 'Copied!';
         fnText.style.setProperty('color', '#10b981', 'important'); // Green
+        const prevSizeText = fnSize.textContent;
+        fnSize.textContent = '';
         setTimeout(() => {
-          fnText.textContent = filename + sizeText;
+          fnText.textContent = filename;
           fnText.style.removeProperty('color');
+          fnSize.textContent = prevSizeText;
         }, 1200);
       };
 
       // Populate album list as clickable button rows
       if (!isCheckboxArea && !isAlbumPage) {
-        // Clear any existing album rows to prevent duplicates on redraw
-        hoverCard.querySelectorAll('.gp-albums-row').forEach(r => r.remove());
-
-        if (!names.length) {
-          const albRow = document.createElement('div');
-          albRow.className = 'gp-hover-row gp-albums-row gp-albums-row--empty';
-          albRow.style.cursor = 'default';
-          const albText = document.createElement('span');
-          albText.className = 'gp-text';
-          albText.textContent = '(not in any albums)';
-          albText.style.color = '#ff8a80';
-          albRow.appendChild(albText);
-          hoverCard.appendChild(albRow);
-        } else {
-          names.forEach(a => {
-            const albRow = document.createElement('div');
-            albRow.className = 'gp-hover-row gp-albums-row';
-            const albText = document.createElement('span');
-            albText.className = 'gp-text';
-            albText.textContent = a.title;
-            albRow.appendChild(albText);
-
-            albRow.onclick = (evt) => {
+        let albBtn = toolbar.querySelector('.gp-album-access-btn');
+        if (albBtn) {
+          if (!names.length) {
+            albBtn.textContent = '(not in any albums)';
+            albBtn.style.color = '#ff8a80';
+            albBtn.onclick = null;
+            albBtn.style.cursor = 'default';
+          } else {
+            albBtn.textContent = names.map(a => a.title).join(', ');
+            albBtn.style.color = 'inherit';
+            albBtn.style.cursor = 'pointer';
+            albBtn.onclick = (evt) => {
               evt.preventDefault();
               evt.stopPropagation();
               const uMatch = window.location.pathname.match(/^\/u\/\d+/);
               const uPrefix = uMatch ? uMatch[0] : '';
-              window.location.href = `${uPrefix}/album/${a.mediaKey}`;
+              window.location.href = `${uPrefix}/album/${names[0].mediaKey}`;
             };
-
-            hoverCard.appendChild(albRow);
-          });
+          }
         }
       }
     } catch (err) {
@@ -1049,7 +1075,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
           gap: '8px',
           cursor: 'pointer'
       });
-      itemDiv.title = 'Click to copy filename';
+      itemDiv.title = item.filename;
 
       const nameSpan = document.createElement('span');
       nameSpan.className = 'gp-text';
