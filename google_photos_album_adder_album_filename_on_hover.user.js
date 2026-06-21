@@ -227,13 +227,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     .gp-hover-row:hover {
       background: rgba(255, 255, 255, 0.1);
     }
-    .gp-hover-row .gp-icon {
-      font-size: 12px;
-      flex-shrink: 0;
-      display: inline-block;
-      width: 14px;
-      text-align: center;
-    }
+    
     .gp-hover-row .gp-text {
       white-space: nowrap;
       overflow: hidden;
@@ -257,6 +251,19 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     .gp-albums-list::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.2);
       border-radius: 2px;
+    }
+
+    /* Clickable Album Links */
+    .gp-album-link {
+      color: #8ab4f8;
+      text-decoration: underline;
+      margin-right: 8px;
+      display: inline-block;
+      cursor: pointer;
+      transition: color 0.15s ease;
+    }
+    .gp-album-link:hover {
+      color: #aecbfa;
     }
 
     /* Un-albumed Highlight */
@@ -438,7 +445,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         filenameCache.set(key, { filename: fn, size: sz });
 
         const albums = info?.albums || info?.albumInfos || info?.collections || info?.containers || [];
-        const names = Array.isArray(albums) ? albums.map(a => a?.title || a?.name || a?.displayName || '').filter(Boolean) : [];
+        const names = Array.isArray(albums) ? albums.map(a => ({
+          title: a?.title || a?.name || a?.displayName || '',
+          mediaKey: a?.mediaKey || a?.id || ''
+        })).filter(a => a.title && a.mediaKey) : [];
         albumCache.set(key, { names, time: Date.now() });
 
         updateTileVisuals(key, names.length);
@@ -546,6 +556,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       // Start prefetching download URL immediately on hover
       let downloadUrlPromise = fetchDownloadUrl(key);
 
+      // Check if we are inside an album/share/direct page
+      const pathParts = window.location.pathname.split('/');
+      const isAlbumPage = pathParts.includes('album') || pathParts.includes('share') || pathParts.includes('direct');
+
       // Card Setup
       let hoverCard = tile.querySelector('.gp-hover-card');
       if (!hoverCard) {
@@ -555,42 +569,32 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         // 1. Filename row
         const fnRow = document.createElement('div');
         fnRow.className = 'gp-hover-row gp-filename-row';
-        const fnIcon = document.createElement('span');
-        fnIcon.className = 'gp-icon';
-        fnIcon.textContent = '📄';
         const fnText = document.createElement('span');
         fnText.className = 'gp-text';
         fnText.textContent = 'Loading filename...';
-        fnRow.appendChild(fnIcon);
         fnRow.appendChild(fnText);
         
         // 2. Download link row
         const dlRow = document.createElement('div');
         dlRow.className = 'gp-hover-row gp-download-row';
-        const dlIcon = document.createElement('span');
-        dlIcon.className = 'gp-icon';
-        dlIcon.textContent = '🔗';
         const dlText = document.createElement('span');
         dlText.className = 'gp-text';
         dlText.textContent = 'Copy Download Link';
-        dlRow.appendChild(dlIcon);
         dlRow.appendChild(dlText);
-        
-        // 3. Albums row
-        const albRow = document.createElement('div');
-        albRow.className = 'gp-hover-row gp-albums-row';
-        const albIcon = document.createElement('span');
-        albIcon.className = 'gp-icon';
-        albIcon.textContent = '📁';
-        const albList = document.createElement('span');
-        albList.className = 'gp-text gp-albums-list';
-        albList.textContent = 'Checking albums...';
-        albRow.appendChild(albIcon);
-        albRow.appendChild(albList);
         
         hoverCard.appendChild(fnRow);
         hoverCard.appendChild(dlRow);
-        hoverCard.appendChild(albRow);
+        
+        // 3. Albums row (only if NOT on album page)
+        if (!isAlbumPage) {
+          const albRow = document.createElement('div');
+          albRow.className = 'gp-hover-row gp-albums-row';
+          const albList = document.createElement('span');
+          albList.className = 'gp-text gp-albums-list';
+          albList.textContent = 'Checking albums...';
+          albRow.appendChild(albList);
+          hoverCard.appendChild(albRow);
+        }
         
         tile.appendChild(hoverCard);
       }
@@ -674,13 +678,20 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       };
 
       // Populate album list
-      if (!isCheckboxArea) {
+      if (!isCheckboxArea && albList) {
+        albList.replaceChildren();
         if (!names.length) {
           albList.textContent = '(not in any albums)';
           albList.style.color = '#ff8a80'; // Dimmed red
         } else {
-          albList.textContent = names.join(', ');
-          albList.style.color = '#fff';
+          names.forEach(a => {
+            const link = document.createElement('a');
+            link.className = 'gp-album-link';
+            link.href = `/album/${a.mediaKey}`;
+            link.textContent = a.title;
+            // Let the browser handle native navigation
+            albList.appendChild(link);
+          });
         }
       }
     } catch (err) {
@@ -755,29 +766,29 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     const cached = albumDetailsCache.get(key);
     if (cached) {
         if (cached.isLoading) {
-            overlay.textContent = `📊 Loading...`;
+            overlay.textContent = `Loading...`;
         } else {
-            overlay.textContent = `📊 ${cached.count} items | ${formatBytes(cached.size)}`;
+            overlay.textContent = `${cached.count} items | ${formatBytes(cached.size)}`;
         }
         return;
     }
 
-    overlay.textContent = `📊 Loading...`;
+    overlay.textContent = `Loading...`;
     albumDetailsCache.set(key, { count: 0, size: 0, isLoading: true });
 
     try {
         const details = await fetchAlbumDetails(key, (fetched, total) => {
             if (card.matches(':hover')) {
-                overlay.textContent = `📊 Loading... (${fetched}/${total})`;
+                overlay.textContent = `Loading... (${fetched}/${total})`;
             }
         });
         albumDetailsCache.set(key, { count: details.count, size: details.size, isLoading: false });
         if (card.matches(':hover')) {
-            overlay.textContent = `📊 ${details.count} items | ${formatBytes(details.size)}`;
+            overlay.textContent = `${details.count} items | ${formatBytes(details.size)}`;
         }
     } catch (err) {
         console.error('Failed to load album details:', err);
-        overlay.textContent = `📊 Error loading`;
+        overlay.textContent = `Error loading`;
         albumDetailsCache.delete(key);
     }
   }
@@ -858,7 +869,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     const badge = document.createElement('span');
     badge.id = 'gp-album-meta-badge';
     badge.className = 'gp-album-meta-badge';
-    badge.textContent = '📊 Loading size...';
+    badge.textContent = 'Loading size...';
     
     Object.assign(badge.style, {
       display: 'inline-flex',
@@ -883,7 +894,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
 
     const cached = albumDetailsCache.get(key);
     if (cached && !cached.isLoading) {
-      badge.textContent = `📊 ${cached.count} items | ${formatBytes(cached.size)}`;
+      badge.textContent = `${cached.count} items | ${formatBytes(cached.size)}`;
       return;
     }
 
@@ -891,10 +902,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       albumDetailsCache.set(key, { count: 0, size: 0, isLoading: true });
       const details = await fetchAlbumDetails(key);
       albumDetailsCache.set(key, { count: details.count, size: details.size, isLoading: false });
-      badge.textContent = `📊 ${details.count} items | ${formatBytes(details.size)}`;
+      badge.textContent = `${details.count} items | ${formatBytes(details.size)}`;
     } catch (err) {
       console.error('[GP-Master] Failed to load album details in album view:', err);
-      badge.textContent = '📊 Error loading size';
+      badge.textContent = 'Error loading size';
       albumDetailsCache.delete(key);
     }
   }

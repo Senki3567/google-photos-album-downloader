@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      1.6
-// @description  Get direct download links for all files in a Google Photos shared or private album (Trusted Types & CSP Safe, Always Visible)
+// @version      2.0
+// @description  Streamlined one-click downloader for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
 // @match        *://photos.google.com/*
@@ -14,12 +14,11 @@
 (function() {
     'use strict';
 
-    // Guard to prevent execution on other Google domains
     if (!window.location.hostname.includes('photos.google.com')) {
         return;
     }
 
-    console.log('[GP Downloader] Userscript injected into the main Google Photos window.');
+    console.log('[GP Downloader] Userscript injected.');
 
     // Helper to apply styles inline to avoid CSP style-src blocking
     function applyStyles(element, styles) {
@@ -44,30 +43,14 @@
         return el;
     }
 
-    let panel, panelTrigger, statusText, albumInfo, progressBar, progressFill, scanBtn, copyBtn, downloadAllBtn, resultsBox, closeBtn;
+    let panel, panelTrigger, statusText, albumInfo, progressBar, progressFill, downloadBtn, closeBtn;
     let albumMediaKey = null;
     let authKey = null;
     let albumTitle = '';
-    let fetchedLinks = [];
-
-
-    function extractMediaKey(el) {
-        if (!el) return null;
-        const a = el.closest('a[href*="/photo/"]') || el.parentElement?.querySelector('a[href*="/photo/"]');
-        const m = a?.getAttribute('href')?.match(/\/photo\/([A-Za-z0-9_\-]+)/);
-        if (m) return m[1];
-        const bg = el.style?.backgroundImage || '';
-        const n = bg.match(/(AF1Qip|AP1Gcz)[A-Za-z0-9_\-]+/);
-        return n ? n[0] : null;
-    }
+    let isDownloading = false;
 
     function init() {
-        console.log('[GP Downloader] DOM bootstrap complete. Creating UI...');
-        
-        if (document.getElementById('gpd-panel')) {
-            console.log('[GP Downloader] Panel already exists. Skipping init.');
-            return;
-        }
+        if (document.getElementById('gpd-panel')) return;
 
         // 1. Create main panel
         panel = createElement('div', {
@@ -82,12 +65,12 @@
             padding: '20px',
             color: '#e8eaed',
             fontFamily: '"Google Sans", Roboto, Inter, sans-serif',
-            width: '340px',
+            width: '320px',
             boxSizing: 'border-box',
             display: 'block'
         }, { id: 'gpd-panel' });
 
-        // 2. Create Header
+        // 2. Header
         const header = createElement('div', {
             display: 'flex',
             justifyContent: 'space-between',
@@ -98,14 +81,13 @@
         });
 
         const headerLeft = createElement('div');
-        const headerTitle = createElement('h3', {}, { textContent: 'GP Downloader' });
-        applyStyles(headerTitle, {
-            fontSize: '16px',
+        const headerTitle = createElement('h3', {
+            fontSize: '15px',
             fontWeight: '600',
             color: '#ffffff',
             margin: '0',
             padding: '0'
-        });
+        }, { textContent: 'GP Downloader' });
 
         albumInfo = createElement('div', {
             fontSize: '12px',
@@ -138,7 +120,7 @@
             marginBottom: '16px',
             color: '#e8eaed',
             minHeight: '20px'
-        }, { id: 'gpd-status-text', textContent: 'Ready to scan.' });
+        }, { id: 'gpd-status-text', textContent: 'Please open an album.' });
         panel.appendChild(statusText);
 
         // 4. Progress bar
@@ -155,89 +137,34 @@
         progressFill = createElement('div', {
             height: '100%',
             width: '0%',
-            background: '#e8eaed',
+            background: '#1a73e8',
             transition: 'width 0.2s ease-out'
         }, { id: 'gpd-progress-fill' });
 
         progressBar.appendChild(progressFill);
         panel.appendChild(progressBar);
 
-        // 5. Actions container & buttons
-        const actions = createElement('div', {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-        });
-
-        scanBtn = createElement('button', {
-            background: '#3c4043',
-            border: '1px solid #5f6368',
-            borderRadius: '8px',
-            color: '#ffffff',
-            padding: '10px 16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-        }, { id: 'gpd-scan-btn', textContent: 'Fetch Download Links' });
-
-        copyBtn = createElement('button', {
-            background: 'rgba(255, 255, 255, 0.06)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+        // 5. Download Button
+        downloadBtn = createElement('button', {
+            width: '100%',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: 'none',
             borderRadius: '8px',
             color: '#80868b',
             padding: '10px 16px',
             fontSize: '14px',
             fontWeight: '500',
-            cursor: 'pointer',
+            cursor: 'default',
             transition: 'all 0.2s ease',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px'
-        }, { id: 'gpd-copy-btn', disabled: 'true', textContent: 'Copy All Links' });
+        }, { id: 'gpd-download-btn', textContent: 'Download Album' });
 
-        downloadAllBtn = createElement('button', {
-            background: 'rgba(255, 255, 255, 0.06)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '8px',
-            color: '#80868b',
-            padding: '10px 16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-        }, { id: 'gpd-download-all-btn', disabled: 'true', textContent: 'Download All' });
+        panel.appendChild(downloadBtn);
 
-        actions.appendChild(scanBtn);
-        actions.appendChild(copyBtn);
-        actions.appendChild(downloadAllBtn);
-        panel.appendChild(actions);
-
-        // 6. Results box
-        resultsBox = createElement('div', {
-            marginTop: '16px',
-            maxHeight: '160px',
-            overflowY: 'auto',
-            borderRadius: '8px',
-            background: 'rgba(0, 0, 0, 0.3)',
-            padding: '10px',
-            fontSize: '11px',
-            fontFamily: 'monospace',
-            border: '1px solid rgba(255, 255, 255, 0.04)',
-            display: 'none'
-        }, { id: 'gpd-results-box' });
-        panel.appendChild(resultsBox);
-
-        // 7. Create mini-trigger icon (floating launcher when panel is closed)
+        // 6. Floating Trigger Launcher
         panelTrigger = createElement('div', {
             position: 'fixed',
             bottom: '24px',
@@ -262,9 +189,8 @@
 
         document.body.appendChild(panel);
         document.body.appendChild(panelTrigger);
-        console.log('[GP Downloader] Panel and Trigger appended to document.');
 
-        // Close/Open toggles
+        // Close/Open toggle events
         closeBtn.addEventListener('click', () => {
             panel.style.display = 'none';
             panelTrigger.style.display = 'flex';
@@ -275,86 +201,23 @@
             panelTrigger.style.display = 'none';
         });
 
-        panelTrigger.addEventListener('mouseenter', () => {
-            panelTrigger.style.transform = 'scale(1.1)';
-        });
-        panelTrigger.addEventListener('mouseleave', () => {
-            panelTrigger.style.transform = 'scale(1)';
-        });
-
-        // Button hover effects via JS
-        const buttons = [scanBtn, copyBtn, downloadAllBtn];
-        buttons.forEach(btn => {
-            btn.addEventListener('mouseenter', () => {
-                if (!btn.disabled) {
-                    btn.style.filter = 'brightness(1.15)';
-                    btn.style.transform = 'translateY(-1px)';
-                }
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.filter = 'none';
-                btn.style.transform = 'none';
-            });
-        });
-
-        // Main Scan logic
-        scanBtn.addEventListener('click', startScanning);
-
-        // Copy Links Event
-        copyBtn.addEventListener('click', () => {
-            const textToCopy = fetchedLinks.map(item => item.url).join('\n');
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const originalText = copyBtn.textContent;
-                copyBtn.textContent = 'Copied!';
-                setTimeout(() => {
-                    copyBtn.textContent = originalText;
-                }, 2000);
-            }).catch(err => {
-                alert('Failed to copy to clipboard: ' + err);
-            });
-        });
-
-        // Download All Files Event (Sequential staggered download via hidden iframe)
-        downloadAllBtn.addEventListener('click', async () => {
-            if (fetchedLinks.length === 0) return;
-            
-            const originalText = downloadAllBtn.textContent;
-            downloadAllBtn.disabled = true;
-            
-            for (let i = 0; i < fetchedLinks.length; i++) {
-                const item = fetchedLinks[i];
-                downloadAllBtn.textContent = `Downloading ${i + 1}/${fetchedLinks.length}...`;
-                
-                // Trigger download using hidden iframe
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                iframe.src = item.url;
-                document.body.appendChild(iframe);
-                
-                // Clean up iframe after 10 seconds
-                setTimeout(() => {
-                    if (iframe.parentNode) {
-                        iframe.parentNode.removeChild(iframe);
-                    }
-                }, 10000);
-                
-                // Stagger downloads by 500ms to avoid browser throttling and allow queuing
-                await new Promise(resolve => setTimeout(resolve, 500));
+        // Hover effects on active button
+        downloadBtn.addEventListener('mouseenter', () => {
+            if (!downloadBtn.disabled && !isDownloading && albumMediaKey) {
+                applyStyles(downloadBtn, { background: '#1557b0', transform: 'translateY(-1px)' });
             }
-            
-            downloadAllBtn.textContent = 'Downloaded!';
-            downloadAllBtn.disabled = false;
-            setTimeout(() => {
-                downloadAllBtn.textContent = originalText;
-            }, 2000);
+        });
+        downloadBtn.addEventListener('mouseleave', () => {
+            if (!downloadBtn.disabled && !isDownloading && albumMediaKey) {
+                applyStyles(downloadBtn, { background: '#1a73e8', transform: 'none' });
+            }
         });
 
-        // Start URL listener
-        startUrlListener();
+        downloadBtn.addEventListener('click', startDownloadWorkflow);
 
+        startUrlListener();
     }
 
-    // Detect SPA Navigation Changes
     function startUrlListener() {
         let lastUrl = '';
         handleUrlChange();
@@ -367,7 +230,8 @@
     }
 
     function handleUrlChange() {
-        console.log('[GP Downloader] handleUrlChange called. Current URL:', location.href);
+        if (isDownloading) return;
+
         const pathParts = window.location.pathname.split('/');
         const shareIndex = pathParts.indexOf('share');
         const albumIndex = pathParts.indexOf('album');
@@ -388,54 +252,43 @@
         const urlParams = new URLSearchParams(window.location.search);
         authKey = urlParams.get('key');
 
-        console.log('[GP Downloader] Resolved Keys -> albumMediaKey:', albumMediaKey, 'authKey:', authKey);
-
         if (albumMediaKey) {
-            // Find album title
             const titleEl = document.querySelector('h1') || document.querySelector('[role="heading"]');
             albumTitle = titleEl ? titleEl.textContent.trim() : 'Google Photos Album';
             if (albumInfo) albumInfo.textContent = `Album: ${albumTitle}`;
-            
-            // Reset state
-            if (statusText) statusText.textContent = 'Ready to scan.';
+            if (statusText) statusText.textContent = 'Ready to download.';
             if (progressBar) progressBar.style.display = 'none';
-            if (progressFill) progressFill.style.width = '0%';
-            
-            if (scanBtn) {
-                scanBtn.disabled = false;
-                applyStyles(scanBtn, { background: '#3c4043', border: '1px solid #5f6368', color: '#ffffff' });
+
+            if (downloadBtn) {
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Download Album';
+                applyStyles(downloadBtn, {
+                    background: '#1a73e8',
+                    color: '#ffffff',
+                    cursor: 'pointer'
+                });
             }
         } else {
-            // Display instructions instead of hiding the panel completely
-            if (albumInfo) albumInfo.textContent = 'No Album Page Detected';
-            if (statusText) statusText.textContent = 'Please open a shared or private album to fetch download links.';
+            if (albumInfo) albumInfo.textContent = 'No Album Detected';
+            if (statusText) statusText.textContent = 'Please open an album to download.';
             if (progressBar) progressBar.style.display = 'none';
-            
-            if (scanBtn) {
-                scanBtn.disabled = true;
-                applyStyles(scanBtn, { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.04)', color: '#80868b' });
+
+            if (downloadBtn) {
+                downloadBtn.disabled = true;
+                downloadBtn.textContent = 'Download Album';
+                applyStyles(downloadBtn, {
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    color: '#80868b',
+                    cursor: 'default'
+                });
             }
-            if (copyBtn) {
-                copyBtn.disabled = true;
-                applyStyles(copyBtn, { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.04)', color: '#80868b' });
-            }
-            if (downloadAllBtn) {
-                downloadAllBtn.disabled = true;
-                applyStyles(downloadAllBtn, { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.04)', color: '#80868b' });
-            }
-            if (resultsBox) {
-                resultsBox.style.display = 'none';
-                resultsBox.innerHTML = '';
-            }
-            fetchedLinks = [];
         }
     }
 
-    // RPC Helper
     async function sendRpc(rpcid, data) {
         const wizData = window.WIZ_global_data;
         if (!wizData) {
-            throw new Error('Google WIZ_global_data not found. Refresh the page.');
+            throw new Error('WIZ_global_data not found. Refresh page.');
         }
 
         const baseUrl = `${location.origin}${wizData['Im6cmf']}/data/batchexecute`;
@@ -447,12 +300,7 @@
             'rt': 'c'
         });
 
-        const payloadData = [
-            rpcid,
-            JSON.stringify(data),
-            null,
-            "1"
-        ];
+        const payloadData = [rpcid, JSON.stringify(data), null, "1"];
         const bodyParams = new URLSearchParams();
         bodyParams.set('f.req', JSON.stringify([[payloadData]]));
         bodyParams.set('at', wizData['SNlM0e']);
@@ -482,160 +330,116 @@
         return null;
     }
 
-    async function startScanning() {
-        if (!albumMediaKey) return;
-        
-        scanBtn.disabled = true;
-        applyStyles(scanBtn, { background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.04)', color: '#80868b' });
+    async function triggerSingleDownload(downloadUrl) {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = downloadUrl;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+            if (iframe.parentNode) {
+                iframe.parentNode.removeChild(iframe);
+            }
+        }, 10000);
+    }
+
+    async function startDownloadWorkflow() {
+        if (!albumMediaKey || isDownloading) return;
+
+        isDownloading = true;
+        downloadBtn.disabled = true;
+        applyStyles(downloadBtn, { background: 'rgba(255, 255, 255, 0.04)', color: '#80868b', cursor: 'default' });
+        downloadBtn.textContent = 'Scanning...';
         progressBar.style.display = 'block';
-        resultsBox.style.display = 'none';
-        resultsBox.innerHTML = '';
-        fetchedLinks = [];
-        mediaKeyToDownloadUrl.clear();
+        progressFill.style.width = '0%';
 
         try {
-            statusText.textContent = 'Fetching album items...';
+            statusText.textContent = 'Scanning album items...';
             let albumItems = [];
             let nextPageId = null;
 
             do {
                 const resData = await sendRpc('snAcKc', [albumMediaKey, nextPageId, null, authKey]);
                 if (!resData) break;
-                
                 const pageItems = resData[1] || [];
-                albumItems.push(...pageItems.map(item => ({
-                    mediaKey: item[0],
-                    timestamp: item[2]
-                })));
+                albumItems.push(...pageItems.map(item => item[0]).filter(Boolean));
                 nextPageId = resData[2] || null;
             } while (nextPageId);
 
             const total = albumItems.length;
             if (total === 0) {
-                statusText.textContent = 'No files found in this album.';
-                scanBtn.disabled = false;
-                applyStyles(scanBtn, { background: '#3c4043', border: '1px solid #5f6368', color: '#ffffff' });
+                statusText.textContent = 'No items found in this album.';
+                resetState();
                 return;
             }
 
-            statusText.textContent = `Found ${total} items. Fetching filenames...`;
-            
-            // Batch retrieve filenames (100 at a time)
-            const mediaKeys = albumItems.map(item => item.mediaKey).filter(Boolean);
-            const mediaInfoByKey = {};
-            const batchSize = 100;
-            
-            for (let i = 0; i < mediaKeys.length; i += batchSize) {
-                const batchKeys = mediaKeys.slice(i, i + batchSize);
-                const keysPayload = batchKeys.map(k => [k]);
-                const emptyArray = Array(24).fill(null);
-                const extraEmptyArray = Array(10).fill(null);
-                const secondPart = [...emptyArray, [], ...extraEmptyArray, []];
-                
-                const batchRes = await sendRpc('EWgK9e', [[[keysPayload], [secondPart]]]);
-                const itemsData = batchRes && batchRes[0] ? batchRes[0][1] : [];
-                for (const itemData of itemsData) {
-                    if (itemData && itemData[0]) {
-                        mediaInfoByKey[itemData[0]] = itemData[1] ? itemData[1][3] : '';
-                    }
-                }
-            }
+            statusText.textContent = `Found ${total} items. Fetching links & downloading...`;
 
-            statusText.textContent = `Retrieving download links... (0/${total})`;
-            resultsBox.style.display = 'block';
-
-            // Fetch download links with concurrency limit of 3 to avoid throttling
+            // Process downloads concurrently (limit of 3)
+            let completed = 0;
             const concurrencyLimit = 3;
-            let currentActive = 0;
-            let currentCompleted = 0;
-            let taskIndex = 0;
-
-            const tasks = albumItems.map(item => async () => {
-                const fileName = mediaInfoByKey[item.mediaKey] || `unknown_${item.mediaKey}`;
-                try {
-                    const itemDetails = await sendRpc('VrseUb', [item.mediaKey, null, authKey, null, albumMediaKey]);
-                    const downloadUrl = itemDetails[7] || itemDetails[1]; // download_original_url or download_url
-                    if (downloadUrl) {
-                        return { fileName, url: downloadUrl };
-                    }
-                } catch (e) {
-                    console.error(`Failed to fetch link for ${fileName}:`, e);
-                }
-                return null;
-            });
+            let index = 0;
 
             await new Promise((resolve) => {
-                function runNext() {
-                    if (taskIndex >= tasks.length && currentActive === 0) {
-                        resolve();
+                async function next() {
+                    if (index >= albumItems.length) {
+                        if (completed === albumItems.length) resolve();
                         return;
                     }
-                    while (currentActive < concurrencyLimit && taskIndex < tasks.length) {
-                        const curIdx = taskIndex++;
-                        currentActive++;
-                        
-                        tasks[curIdx]()
-                            .then(res => {
-                                if (res) {
-                                    fetchedLinks.push(res);
-                                    // Add to visible results box programmatically
-                                    const resDiv = createElement('div', {
-                                        padding: '4px 0',
-                                        borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis'
-                                    }, { textContent: `${fetchedLinks.length}. ${res.fileName}` });
-                                    resultsBox.appendChild(resDiv);
-                                    resultsBox.scrollTop = resultsBox.scrollHeight;
+
+                    while (index < albumItems.length && (index - completed) < concurrencyLimit) {
+                        const curIdx = index++;
+                        const mediaKey = albumItems[curIdx];
+
+                        (async () => {
+                            try {
+                                const details = await sendRpc('VrseUb', [mediaKey, null, authKey, null, albumMediaKey]);
+                                const downloadUrl = details ? (details[7] || details[1]) : null;
+                                if (downloadUrl) {
+                                    await triggerSingleDownload(downloadUrl);
                                 }
-                            })
-                            .finally(() => {
-                                currentActive--;
-                                currentCompleted++;
-                                // Update progress UI
-                                const percent = Math.round((currentCompleted / total) * 100);
+                            } catch (e) {
+                                console.error('Failed to download item:', mediaKey, e);
+                            } finally {
+                                completed++;
+                                const percent = Math.round((completed / total) * 100);
                                 progressFill.style.width = `${percent}%`;
-                                statusText.textContent = `Retrieving download links... (${currentCompleted}/${total})`;
-                                runNext();
-                            });
+                                statusText.textContent = `Downloading... (${completed}/${total})`;
+                                if (completed === total) {
+                                    resolve();
+                                } else {
+                                    next();
+                                }
+                            }
+                        })();
                     }
                 }
-                runNext();
+                next();
             });
 
-            statusText.textContent = `Completed! Successfully fetched ${fetchedLinks.length}/${total} links.`;
-            
-            if (fetchedLinks.length > 0) {
-                copyBtn.disabled = false;
-                applyStyles(copyBtn, { background: '#3c4043', border: '1px solid #5f6368', color: '#e8eaed' });
-                downloadAllBtn.disabled = false;
-                applyStyles(downloadAllBtn, { background: '#3c4043', border: '1px solid #5f6368', color: '#e8eaed' });
-            }
-            
-            scanBtn.disabled = false;
-            applyStyles(scanBtn, { background: '#3c4043', border: '1px solid #5f6368', color: '#ffffff' });
+            statusText.textContent = `Successfully triggered download for ${total} items!`;
+            downloadBtn.textContent = 'Completed';
+            setTimeout(resetState, 3000);
 
         } catch (error) {
-            console.error('Scan error:', error);
+            console.error('Download error:', error);
             statusText.textContent = `Error: ${error.message}`;
-            scanBtn.disabled = false;
-            applyStyles(scanBtn, { background: '#3c4043', border: '1px solid #5f6368', color: '#ffffff' });
+            setTimeout(resetState, 4000);
         }
     }
 
-    // Safely bootstrap the initialization
+    function resetState() {
+        isDownloading = false;
+        handleUrlChange();
+    }
+
     function bootstrap() {
         if (document.body) {
             init();
         } else {
-            console.log('[GP Downloader] document.body not ready. Waiting...');
             document.addEventListener('DOMContentLoaded', init);
-            // Fallback timeout just in case DOMContentLoaded was already fired
             setTimeout(bootstrap, 100);
         }
     }
 
     bootstrap();
-
 })();
