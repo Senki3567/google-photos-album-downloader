@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      2.0
-// @description  Streamlined one-click downloader for Google Photos Albums (Trusted Types & CSP Safe)
+// @version      2.1
+// @description  Streamlined one-click button downloader for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
 // @match        *://photos.google.com/*
@@ -20,198 +20,56 @@
 
     console.log('[GP Downloader] Userscript injected.');
 
-    // Helper to apply styles inline to avoid CSP style-src blocking
-    function applyStyles(element, styles) {
-        if (element) {
-            Object.assign(element.style, styles);
+    // Inject CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        #gpd-download-btn {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            z-index: 999999;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-family: "Google Sans", Roboto, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: #1a73e8;
+            color: #ffffff;
         }
-    }
-
-    // Helper to create element programmatically (avoids Trusted Types innerHTML issues)
-    function createElement(tag, styles = {}, attrs = {}) {
-        const el = document.createElement(tag);
-        applyStyles(el, styles);
-        for (const [key, val] of Object.entries(attrs)) {
-            if (key === 'textContent') {
-                el.textContent = val;
-            } else if (key === 'id') {
-                el.id = val;
-            } else {
-                el.setAttribute(key, val);
-            }
+        #gpd-download-btn:hover:not(:disabled) {
+            background: #1557b0;
+            transform: translateY(-1px);
         }
-        return el;
-    }
+        #gpd-download-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        #gpd-download-btn:disabled {
+            background: #3c4043;
+            color: #9aa0a6;
+            cursor: default;
+        }
+    `;
+    document.head.appendChild(style);
 
-    let panel, panelTrigger, statusText, albumInfo, progressBar, progressFill, downloadBtn, closeBtn;
+    let downloadBtn;
     let albumMediaKey = null;
     let authKey = null;
-    let albumTitle = '';
     let isDownloading = false;
 
     function init() {
-        if (document.getElementById('gpd-panel')) return;
+        if (document.getElementById('gpd-download-btn')) return;
 
-        // 1. Create main panel
-        panel = createElement('div', {
-            position: 'fixed',
-            bottom: '24px',
-            left: '24px',
-            zIndex: '999999',
-            background: '#202124',
-            border: '1px solid #3c4043',
-            borderRadius: '12px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
-            padding: '20px',
-            color: '#e8eaed',
-            fontFamily: '"Google Sans", Roboto, Inter, sans-serif',
-            width: '320px',
-            boxSizing: 'border-box',
-            display: 'block'
-        }, { id: 'gpd-panel' });
-
-        // 2. Header
-        const header = createElement('div', {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '16px',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            paddingBottom: '12px'
-        });
-
-        const headerLeft = createElement('div');
-        const headerTitle = createElement('h3', {
-            fontSize: '15px',
-            fontWeight: '600',
-            color: '#ffffff',
-            margin: '0',
-            padding: '0'
-        }, { textContent: 'GP Downloader' });
-
-        albumInfo = createElement('div', {
-            fontSize: '12px',
-            color: '#9aa0a6',
-            marginTop: '4px',
-            wordBreak: 'break-all'
-        }, { id: 'gpd-album-info', textContent: 'Detecting album...' });
-
-        headerLeft.appendChild(headerTitle);
-        headerLeft.appendChild(albumInfo);
-
-        closeBtn = createElement('button', {
-            background: 'none',
-            border: 'none',
-            color: '#9aa0a6',
-            cursor: 'pointer',
-            fontSize: '22px',
-            padding: '4px',
-            lineHeight: '1',
-            transition: 'color 0.2s'
-        }, { id: 'gpd-close-btn', textContent: '×' });
-
-        header.appendChild(headerLeft);
-        header.appendChild(closeBtn);
-        panel.appendChild(header);
-
-        // 3. Status text
-        statusText = createElement('div', {
-            fontSize: '13px',
-            marginBottom: '16px',
-            color: '#e8eaed',
-            minHeight: '20px'
-        }, { id: 'gpd-status-text', textContent: 'Please open an album.' });
-        panel.appendChild(statusText);
-
-        // 4. Progress bar
-        progressBar = createElement('div', {
-            width: '100%',
-            height: '6px',
-            background: 'rgba(255, 255, 255, 0.08)',
-            borderRadius: '3px',
-            overflow: 'hidden',
-            marginBottom: '16px',
-            display: 'none'
-        }, { id: 'gpd-progress-bar' });
-
-        progressFill = createElement('div', {
-            height: '100%',
-            width: '0%',
-            background: '#1a73e8',
-            transition: 'width 0.2s ease-out'
-        }, { id: 'gpd-progress-fill' });
-
-        progressBar.appendChild(progressFill);
-        panel.appendChild(progressBar);
-
-        // 5. Download Button
-        downloadBtn = createElement('button', {
-            width: '100%',
-            background: 'rgba(255, 255, 255, 0.04)',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#80868b',
-            padding: '10px 16px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'default',
-            transition: 'all 0.2s ease',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
-        }, { id: 'gpd-download-btn', textContent: 'Download Album' });
-
-        panel.appendChild(downloadBtn);
-
-        // 6. Floating Trigger Launcher
-        panelTrigger = createElement('div', {
-            position: 'fixed',
-            bottom: '24px',
-            left: '24px',
-            zIndex: '999999',
-            background: '#202124',
-            border: '1px solid #3c4043',
-            borderRadius: '50%',
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
-            width: '48px',
-            height: '48px',
-            cursor: 'pointer',
-            display: 'none',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#e8eaed',
-            fontWeight: 'bold',
-            fontSize: '20px',
-            fontFamily: 'sans-serif',
-            transition: 'transform 0.2s ease'
-        }, { id: 'gpd-trigger', textContent: '⬇' });
-
-        document.body.appendChild(panel);
-        document.body.appendChild(panelTrigger);
-
-        // Close/Open toggle events
-        closeBtn.addEventListener('click', () => {
-            panel.style.display = 'none';
-            panelTrigger.style.display = 'flex';
-        });
-
-        panelTrigger.addEventListener('click', () => {
-            panel.style.display = 'block';
-            panelTrigger.style.display = 'none';
-        });
-
-        // Hover effects on active button
-        downloadBtn.addEventListener('mouseenter', () => {
-            if (!downloadBtn.disabled && !isDownloading && albumMediaKey) {
-                applyStyles(downloadBtn, { background: '#1557b0', transform: 'translateY(-1px)' });
-            }
-        });
-        downloadBtn.addEventListener('mouseleave', () => {
-            if (!downloadBtn.disabled && !isDownloading && albumMediaKey) {
-                applyStyles(downloadBtn, { background: '#1a73e8', transform: 'none' });
-            }
-        });
+        downloadBtn = document.createElement('button');
+        downloadBtn.id = 'gpd-download-btn';
+        downloadBtn.textContent = 'Download Album';
+        document.body.appendChild(downloadBtn);
 
         downloadBtn.addEventListener('click', startDownloadWorkflow);
 
@@ -239,7 +97,6 @@
 
         albumMediaKey = null;
         authKey = null;
-        albumTitle = '';
 
         if (shareIndex !== -1 && shareIndex + 1 < pathParts.length) {
             albumMediaKey = pathParts[shareIndex + 1];
@@ -253,34 +110,15 @@
         authKey = urlParams.get('key');
 
         if (albumMediaKey) {
-            const titleEl = document.querySelector('h1') || document.querySelector('[role="heading"]');
-            albumTitle = titleEl ? titleEl.textContent.trim() : 'Google Photos Album';
-            if (albumInfo) albumInfo.textContent = `Album: ${albumTitle}`;
-            if (statusText) statusText.textContent = 'Ready to download.';
-            if (progressBar) progressBar.style.display = 'none';
-
             if (downloadBtn) {
+                downloadBtn.style.display = 'flex';
                 downloadBtn.disabled = false;
                 downloadBtn.textContent = 'Download Album';
-                applyStyles(downloadBtn, {
-                    background: '#1a73e8',
-                    color: '#ffffff',
-                    cursor: 'pointer'
-                });
             }
         } else {
-            if (albumInfo) albumInfo.textContent = 'No Album Detected';
-            if (statusText) statusText.textContent = 'Please open an album to download.';
-            if (progressBar) progressBar.style.display = 'none';
-
             if (downloadBtn) {
+                downloadBtn.style.display = 'none';
                 downloadBtn.disabled = true;
-                downloadBtn.textContent = 'Download Album';
-                applyStyles(downloadBtn, {
-                    background: 'rgba(255, 255, 255, 0.04)',
-                    color: '#80868b',
-                    cursor: 'default'
-                });
             }
         }
     }
@@ -347,13 +185,9 @@
 
         isDownloading = true;
         downloadBtn.disabled = true;
-        applyStyles(downloadBtn, { background: 'rgba(255, 255, 255, 0.04)', color: '#80868b', cursor: 'default' });
         downloadBtn.textContent = 'Scanning...';
-        progressBar.style.display = 'block';
-        progressFill.style.width = '0%';
 
         try {
-            statusText.textContent = 'Scanning album items...';
             let albumItems = [];
             let nextPageId = null;
 
@@ -367,14 +201,13 @@
 
             const total = albumItems.length;
             if (total === 0) {
-                statusText.textContent = 'No items found in this album.';
-                resetState();
+                downloadBtn.textContent = 'Empty Album';
+                setTimeout(resetState, 2000);
                 return;
             }
 
-            statusText.textContent = `Found ${total} items. Fetching links & downloading...`;
+            downloadBtn.textContent = `Downloading (0/${total})`;
 
-            // Process downloads concurrently (limit of 3)
             let completed = 0;
             const concurrencyLimit = 3;
             let index = 0;
@@ -401,9 +234,7 @@
                                 console.error('Failed to download item:', mediaKey, e);
                             } finally {
                                 completed++;
-                                const percent = Math.round((completed / total) * 100);
-                                progressFill.style.width = `${percent}%`;
-                                statusText.textContent = `Downloading... (${completed}/${total})`;
+                                downloadBtn.textContent = `Downloading (${completed}/${total})`;
                                 if (completed === total) {
                                     resolve();
                                 } else {
@@ -416,13 +247,12 @@
                 next();
             });
 
-            statusText.textContent = `Successfully triggered download for ${total} items!`;
-            downloadBtn.textContent = 'Completed';
+            downloadBtn.textContent = 'Completed!';
             setTimeout(resetState, 3000);
 
         } catch (error) {
             console.error('Download error:', error);
-            statusText.textContent = `Error: ${error.message}`;
+            downloadBtn.textContent = 'Error!';
             setTimeout(resetState, 4000);
         }
     }

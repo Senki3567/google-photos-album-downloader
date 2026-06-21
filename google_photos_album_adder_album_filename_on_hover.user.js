@@ -233,24 +233,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .gp-albums-row {
-      cursor: default;
-    }
-    .gp-albums-row:hover {
-      background: none;
-    }
-    .gp-albums-list {
-      white-space: normal;
-      word-break: break-word;
-      max-height: 48px;
-      overflow-y: auto;
-    }
-    .gp-albums-list::-webkit-scrollbar {
-      width: 4px;
-    }
-    .gp-albums-list::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 2px;
+    .gp-albums-row--empty:hover {
+      background: none !important;
     }
 
     /* Clickable Album Links */
@@ -601,7 +585,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
 
       const fnText = hoverCard.querySelector('.gp-filename-row .gp-text');
       const dlText = hoverCard.querySelector('.gp-download-row .gp-text');
-      const albList = hoverCard.querySelector('.gp-albums-list');
 
       // Add fade in
       setTimeout(() => hoverCard.classList.add('gp-hover-card--show'), 10);
@@ -677,20 +660,37 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         }
       };
 
-      // Populate album list
-      if (!isCheckboxArea && albList) {
-        albList.replaceChildren();
+      // Populate album list as clickable button rows
+      if (!isCheckboxArea && !isAlbumPage) {
+        // Clear any existing album rows to prevent duplicates on redraw
+        hoverCard.querySelectorAll('.gp-albums-row').forEach(r => r.remove());
+
         if (!names.length) {
-          albList.textContent = '(not in any albums)';
-          albList.style.color = '#ff8a80'; // Dimmed red
+          const albRow = document.createElement('div');
+          albRow.className = 'gp-hover-row gp-albums-row gp-albums-row--empty';
+          albRow.style.cursor = 'default';
+          const albText = document.createElement('span');
+          albText.className = 'gp-text';
+          albText.textContent = '(not in any albums)';
+          albText.style.color = '#ff8a80';
+          albRow.appendChild(albText);
+          hoverCard.appendChild(albRow);
         } else {
           names.forEach(a => {
-            const link = document.createElement('a');
-            link.className = 'gp-album-link';
-            link.href = `/album/${a.mediaKey}`;
-            link.textContent = a.title;
-            // Let the browser handle native navigation
-            albList.appendChild(link);
+            const albRow = document.createElement('div');
+            albRow.className = 'gp-hover-row gp-albums-row';
+            const albText = document.createElement('span');
+            albText.className = 'gp-text';
+            albText.textContent = a.title;
+            albRow.appendChild(albText);
+
+            albRow.onclick = (evt) => {
+              evt.preventDefault();
+              evt.stopPropagation();
+              window.location.href = `/album/${a.mediaKey}`;
+            };
+
+            hoverCard.appendChild(albRow);
           });
         }
       }
