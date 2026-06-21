@@ -612,7 +612,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       border-radius: 22px;
     }
     .gpd-album-hover-details {
-      top: 65%;
+      top: 35%;
       bottom: 8px;
       left: 8px;
       right: 8px;
