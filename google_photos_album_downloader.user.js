@@ -132,16 +132,16 @@
             border: 1px solid var(--gpd-panel-border);
             backdrop-filter: blur(16px) saturate(180%);
             -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border-radius: 16px;
+            border-radius: 12px;
             box-shadow: var(--gpd-shadow);
-            padding: 20px;
+            padding: 12px;
             color: var(--gpd-text);
             font-family: "Google Sans", Roboto, Inter, sans-serif;
-            width: 320px;
+            width: 260px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 8px;
             opacity: 0;
             transform: translateY(10px) scale(0.95);
             pointer-events: none;
@@ -151,32 +151,6 @@
             opacity: 1;
             transform: translateY(0) scale(1);
             pointer-events: auto;
-        }
-
-        .gpd-close-btn {
-            background: none;
-            border: none;
-            color: var(--gpd-text-secondary);
-            cursor: pointer;
-            font-size: 20px;
-            padding: 4px;
-            line-height: 1;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s ease, color 0.2s ease;
-        }
-        .gpd-close-btn:hover {
-            background: var(--gpd-btn-hover);
-            color: var(--gpd-text);
-        }
-        .gpd-close-btn svg {
-            width: 18px;
-            height: 18px;
-            fill: currentColor;
         }
 
         .gpd-action-btn {
@@ -217,26 +191,25 @@
 
         .gpd-progress-bar {
             width: 100%;
-            height: 6px;
+            height: 3px;
             background: var(--gpd-progress-bg);
-            border-radius: 3px;
+            border-radius: 1.5px;
             overflow: hidden;
-            display: none;
+            margin-bottom: 4px;
         }
         .gpd-progress-fill {
             height: 100%;
             width: 0%;
             background: var(--gpd-accent);
-            border-radius: 3px;
+            border-radius: 1.5px;
             transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
         }
     `;
     document.head.appendChild(style);
 
-    let panel, panelTrigger, statusText, albumInfo, progressBar, progressFill, scanBtn, copyBtn, downloadAllBtn, closeBtn;
+    let panel, panelTrigger, progressBar, progressFill, scanBtn, copyBtn, downloadAllBtn;
     let albumMediaKey = null;
     let authKey = null;
-    let albumTitle = '';
     let fetchedItems = [];
     let isWorking = false;
     let lastAlbumKey = null;
@@ -255,42 +228,6 @@
         panel = document.createElement('div');
         panel.id = 'gpd-panel';
 
-        // Header
-        const header = document.createElement('div');
-        Object.assign(header.style, {
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            borderBottom: '1px solid var(--gpd-panel-border)',
-            paddingBottom: '12px'
-        });
-
-        const headerLeft = document.createElement('div');
-        const headerTitle = document.createElement('h3');
-        headerTitle.textContent = 'GP Downloader';
-
-        albumInfo = document.createElement('div');
-        albumInfo.className = 'gpd-album-info';
-        albumInfo.textContent = 'Detecting album...';
-
-        headerLeft.appendChild(headerTitle);
-        headerLeft.appendChild(albumInfo);
-
-        closeBtn = document.createElement('button');
-        closeBtn.className = 'gpd-close-btn';
-        closeBtn.title = 'Close';
-        closeBtn.appendChild(createSvgIcon(PATH_CLOSE));
-
-        header.appendChild(headerLeft);
-        header.appendChild(closeBtn);
-        panel.appendChild(header);
-
-        // Status text
-        statusText = document.createElement('div');
-        statusText.className = 'gpd-status-text';
-        statusText.textContent = 'Ready to fetch.';
-        panel.appendChild(statusText);
-
         // Progress bar
         progressBar = document.createElement('div');
         progressBar.className = 'gpd-progress-bar';
@@ -300,43 +237,39 @@
         progressBar.appendChild(progressFill);
         panel.appendChild(progressBar);
 
-        // Actions Container
-        const actions = document.createElement('div');
-        Object.assign(actions.style, {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            marginTop: '8px'
-        });
-
         // 3 Buttons
         scanBtn = document.createElement('button');
         scanBtn.className = 'gpd-action-btn gpd-action-btn-primary';
         scanBtn.textContent = 'Fetch Download Links';
-        actions.appendChild(scanBtn);
+        panel.appendChild(scanBtn);
 
         copyBtn = document.createElement('button');
         copyBtn.className = 'gpd-action-btn';
         copyBtn.textContent = 'Copy All Links';
         copyBtn.disabled = true;
-        actions.appendChild(copyBtn);
+        panel.appendChild(copyBtn);
 
         downloadAllBtn = document.createElement('button');
         downloadAllBtn.className = 'gpd-action-btn';
         downloadAllBtn.textContent = 'Download All';
         downloadAllBtn.disabled = true;
-        actions.appendChild(downloadAllBtn);
+        panel.appendChild(downloadAllBtn);
 
-        panel.appendChild(actions);
         document.body.appendChild(panel);
 
         // Event Listeners
-        panelTrigger.addEventListener('click', () => {
+        panelTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
             panel.classList.toggle('gpd-visible');
         });
 
-        closeBtn.addEventListener('click', () => {
-            panel.classList.remove('gpd-visible');
+        // Close on clicking outside the panel
+        document.addEventListener('click', (e) => {
+            if (panel.classList.contains('gpd-visible') && 
+                !panel.contains(e.target) && 
+                !panelTrigger.contains(e.target)) {
+                panel.classList.remove('gpd-visible');
+            }
         });
 
         scanBtn.addEventListener('click', startScanningWorkflow);
@@ -387,16 +320,12 @@
             if (panelTrigger) {
                 panelTrigger.style.display = 'flex';
             }
-            const titleEl = document.querySelector('h1') || document.querySelector('[role="heading"]');
-            albumTitle = titleEl ? titleEl.textContent.trim() : 'Google Photos Album';
-            if (albumInfo) albumInfo.textContent = `Album: ${albumTitle}`;
             
             // Only reset if we transitioned to a different album
             if (lastAlbumKey !== albumMediaKey) {
                 lastAlbumKey = albumMediaKey;
                 fetchedItems = [];
-                if (statusText) statusText.textContent = 'Ready to fetch.';
-                if (progressBar) progressBar.style.display = 'none';
+                if (progressFill) progressFill.style.width = '0%';
                 if (scanBtn) {
                     scanBtn.disabled = false;
                     scanBtn.textContent = 'Fetch Download Links';
@@ -475,8 +404,7 @@
 
     async function resolveAllDownloadUrls() {
         const total = fetchedItems.length;
-        statusText.textContent = `Resolving links... (0/${total})`;
-        progressBar.style.display = 'block';
+        scanBtn.textContent = `Fetching... (0/${total})`;
         progressFill.style.width = '0%';
         progressFill.style.background = 'var(--gpd-accent)';
 
@@ -499,7 +427,7 @@
                         completed++;
                         const percent = Math.round((completed / total) * 100);
                         progressFill.style.width = `${percent}%`;
-                        statusText.textContent = `Resolving links... (${completed}/${total})`;
+                        scanBtn.textContent = `Fetching... (${completed}/${total})`;
                         if (completed === total) resolve();
                         continue;
                     }
@@ -514,7 +442,7 @@
                             completed++;
                             const percent = Math.round((completed / total) * 100);
                             progressFill.style.width = `${percent}%`;
-                            statusText.textContent = `Resolving links... (${completed}/${total})`;
+                            scanBtn.textContent = `Fetching... (${completed}/${total})`;
                             if (completed === total) {
                                 resolve();
                             } else {
@@ -536,8 +464,7 @@
         copyBtn.disabled = true;
         downloadAllBtn.disabled = true;
         
-        statusText.textContent = 'Scanning album items...';
-        progressBar.style.display = 'block';
+        scanBtn.textContent = 'Scanning...';
         progressFill.style.width = '0%';
         progressFill.style.background = 'var(--gpd-accent)';
 
@@ -555,7 +482,7 @@
 
             const total = albumItems.length;
             if (total === 0) {
-                statusText.textContent = 'No items found in this album.';
+                scanBtn.textContent = 'No items found!';
                 progressFill.style.background = '#dc3545';
                 isWorking = false;
                 scanBtn.disabled = false;
@@ -569,19 +496,19 @@
 
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
             if (urls.length === 0) {
-                statusText.textContent = 'Failed to fetch any download links.';
+                scanBtn.textContent = 'Fetch failed';
                 progressFill.style.background = '#dc3545';
                 copyBtn.disabled = true;
                 downloadAllBtn.disabled = true;
             } else {
-                statusText.textContent = `Fetched ${urls.length} of ${total} links. Ready to Copy/Download!`;
+                scanBtn.textContent = `Fetched ${urls.length} links ✓`;
                 progressFill.style.background = '#28a745'; // Success green
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
             }
         } catch (error) {
             console.error('Fetch error:', error);
-            statusText.textContent = `Fetch error: ${error.message}`;
+            scanBtn.textContent = 'Fetch error';
             progressFill.style.background = '#dc3545'; // Error red
         } finally {
             isWorking = false;
@@ -594,22 +521,21 @@
 
         const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
         if (urls.length === 0) {
-            statusText.textContent = 'No links fetched yet. Click Fetch first.';
             return;
         }
 
         try {
             await navigator.clipboard.writeText(urls.join('\n'));
-            const prevText = statusText.textContent;
-            statusText.textContent = `Copied ${urls.length} links to Clipboard!`;
+            const prevText = copyBtn.textContent;
+            copyBtn.textContent = 'Copied to Clipboard! ✓';
             
             setTimeout(() => {
-                statusText.textContent = prevText;
+                copyBtn.textContent = prevText;
             }, 3000);
 
         } catch (error) {
             console.error('Copy error:', error);
-            statusText.textContent = `Error copying: ${error.message}`;
+            copyBtn.textContent = 'Copy failed';
         }
     }
 
@@ -618,7 +544,6 @@
 
         const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
         if (urls.length === 0) {
-            statusText.textContent = 'No download links available.';
             return;
         }
 
@@ -627,14 +552,13 @@
         copyBtn.disabled = true;
         downloadAllBtn.disabled = true;
 
-        statusText.textContent = `Starting downloads... (0/${urls.length})`;
-        progressBar.style.display = 'block';
+        downloadAllBtn.textContent = `Downloading... (0/${urls.length})`;
         progressFill.style.width = '0%';
         progressFill.style.background = 'var(--gpd-accent)';
 
         try {
             for (let i = 0; i < urls.length; i++) {
-                statusText.textContent = `Downloading... (${i + 1}/${urls.length})`;
+                downloadAllBtn.textContent = `Downloading... (${i + 1}/${urls.length})`;
                 const percent = Math.round(((i + 1) / urls.length) * 100);
                 progressFill.style.width = `${percent}%`;
                 
@@ -642,17 +566,17 @@
                 await new Promise(r => setTimeout(r, 500));
             }
 
-            statusText.textContent = `Successfully started downloading all ${urls.length} items!`;
+            downloadAllBtn.textContent = `Downloaded ${urls.length} items ✓`;
             progressFill.style.background = '#28a745';
             
             setTimeout(() => {
-                statusText.textContent = `Fetched ${urls.length} links. Ready to Copy/Download!`;
-                progressBar.style.display = 'none';
+                downloadAllBtn.textContent = 'Download All';
+                progressFill.style.width = '0%';
             }, 4000);
 
         } catch (error) {
             console.error('Download all error:', error);
-            statusText.textContent = `Download error: ${error.message}`;
+            downloadAllBtn.textContent = 'Download error';
             progressFill.style.background = '#dc3545';
         } finally {
             isWorking = false;
