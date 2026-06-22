@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.7.10
+// @version      3.8.0
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -642,10 +642,105 @@
             background: rgba(127, 127, 127, 0.08);
             box-shadow: none;
         }
+        .gpd-link-list-section {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+        }
+        .gpd-link-list-section[data-visible="true"] {
+            display: flex;
+        }
+        .gpd-link-list-title {
+            margin: 0;
+            color: var(--gpd-text-secondary);
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .gpd-link-list {
+            max-height: 210px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: var(--gpd-glass-outline) transparent;
+        }
+        .gpd-link-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        .gpd-link-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .gpd-link-list::-webkit-scrollbar-thumb {
+            border-radius: 999px;
+            background: var(--gpd-glass-outline);
+        }
+        .gpd-link-item {
+            width: 100%;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px 8px 12px;
+            box-sizing: border-box;
+            border: 1px solid var(--gpd-glass-outline);
+            border-radius: 12px;
+            color: var(--gpd-secondary-action-text);
+            background: var(--gpd-secondary-action-fill);
+            font-family: inherit;
+            cursor: pointer;
+            transition:
+                border-radius 180ms var(--gpd-shape-motion),
+                background-color 160ms ease,
+                color 160ms ease,
+                border-color 160ms ease;
+        }
+        .gpd-link-item:hover {
+            border-radius: 12px;
+            border-color: var(--gpd-expressive);
+            background: var(--gpd-secondary-action-hover);
+        }
+        .gpd-link-item:active {
+            border-radius: 999px;
+        }
+        .gpd-link-item:focus-visible {
+            outline: 3px solid color-mix(in srgb, var(--gpd-focus) 55%, transparent);
+            outline-offset: 2px;
+        }
+        .gpd-link-item-name {
+            min-width: 0;
+            flex: 1;
+            overflow: hidden;
+            text-align: left;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .gpd-link-item-icon {
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            color: inherit;
+        }
+        .gpd-link-item[data-copied="true"] {
+            border-color: var(--gpd-success);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .gpd-link-item {
+                transition-duration: 1ms !important;
+            }
+        }
     `;
     document.head.appendChild(style);
 
     let panel, panelTrigger, panelClose, progressBar, progressFill, statusText, summaryText;
+    let linkListSection, linkList, linkListTitle;
     let scanBtn, copyBtn, downloadAllBtn;
     let albumMediaKey = null;
     let authKey = null;
@@ -687,6 +782,68 @@
             progressFill.dataset.tone = tone;
         }
         if (progressBar) progressBar.setAttribute('aria-valuenow', String(boundedValue));
+    }
+
+    function clearIndividualLinks() {
+        if (linkList) linkList.replaceChildren();
+        if (linkListSection) linkListSection.dataset.visible = 'false';
+        if (linkListTitle) linkListTitle.textContent = 'Individual links';
+    }
+
+    function getDisplayFilename(item, index) {
+        const filename = typeof item?.filename === 'string' ? item.filename.trim() : '';
+        return filename && filename !== '(unknown)' ? filename : `File ${index + 1}`;
+    }
+
+    function renderIndividualLinks() {
+        if (!linkList || !linkListSection || !linkListTitle) return;
+
+        const copyableItems = fetchedItems.filter(item => item.downloadUrl);
+        linkList.replaceChildren();
+        if (!copyableItems.length) {
+            linkListSection.dataset.visible = 'false';
+            return;
+        }
+
+        linkListTitle.textContent = `Individual links · ${copyableItems.length}`;
+        copyableItems.forEach((item) => {
+            const originalIndex = fetchedItems.indexOf(item);
+            const filename = getDisplayFilename(item, originalIndex);
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'gpd-link-item';
+            row.title = filename;
+            row.setAttribute('aria-label', `Copy direct link for ${filename}`);
+
+            const name = document.createElement('span');
+            name.className = 'gpd-link-item-name';
+            name.textContent = filename;
+
+            const icon = document.createElement('span');
+            icon.className = 'gpd-link-item-icon';
+            icon.appendChild(createSvgIcon(PATH_COPY, 17));
+            row.append(name, icon);
+
+            row.addEventListener('click', async () => {
+                if (!item.downloadUrl) return;
+                try {
+                    await navigator.clipboard.writeText(item.downloadUrl);
+                    row.dataset.copied = 'true';
+                    icon.replaceChildren(createSvgIcon(PATH_CHECK, 17));
+                    row.setAttribute('aria-label', `Direct link copied for ${filename}`);
+                    setTimeout(() => {
+                        row.dataset.copied = 'false';
+                        icon.replaceChildren(createSvgIcon(PATH_COPY, 17));
+                        row.setAttribute('aria-label', `Copy direct link for ${filename}`);
+                    }, 1400);
+                } catch (error) {
+                    console.error('Individual link copy failed:', filename, error);
+                }
+            });
+
+            linkList.appendChild(row);
+        });
+        linkListSection.dataset.visible = 'true';
     }
 
     function init() {
@@ -795,6 +952,21 @@
         actions.appendChild(downloadAllBtn);
 
         panel.appendChild(actions);
+
+        linkListSection = document.createElement('section');
+        linkListSection.className = 'gpd-link-list-section';
+        linkListSection.dataset.visible = 'false';
+        linkListSection.setAttribute('aria-label', 'Individual download links');
+
+        linkListTitle = document.createElement('h3');
+        linkListTitle.className = 'gpd-link-list-title';
+        linkListTitle.textContent = 'Individual links';
+
+        linkList = document.createElement('div');
+        linkList.className = 'gpd-link-list';
+
+        linkListSection.append(linkListTitle, linkList);
+        panel.appendChild(linkListSection);
         document.body.appendChild(panel);
 
         // Event Listeners for Hover-triggered Menu
@@ -930,6 +1102,7 @@
             if (lastAlbumKey !== albumMediaKey) {
                 lastAlbumKey = albumMediaKey;
                 fetchedItems = [];
+                clearIndividualLinks();
                 setProgress(0);
                 setPanelStatus('Ready', '');
                 if (scanBtn) {
@@ -1094,6 +1267,52 @@
         });
     }
 
+    async function resolveAllFilenames() {
+        const unresolvedItems = fetchedItems.filter(item => !item.filename || item.filename === '(unknown)');
+        if (!unresolvedItems.length) return;
+
+        const batchSize = 100;
+        const batches = [];
+        for (let i = 0; i < unresolvedItems.length; i += batchSize) {
+            batches.push(unresolvedItems.slice(i, i + batchSize));
+        }
+
+        let nextBatchIndex = 0;
+        async function worker() {
+            while (nextBatchIndex < batches.length) {
+                const batch = batches[nextBatchIndex++];
+                const keysPayload = batch.map(item => [item.mediaKey]);
+                const emptyArray = Array(24).fill(null);
+                const extraEmptyArray = Array(10).fill(null);
+                const secondPart = [...emptyArray, [], ...extraEmptyArray, []];
+
+                try {
+                    const batchResult = await sendRpc('EWgK9e', [[[keysPayload], [secondPart]]]);
+                    const metadataItems = batchResult?.[0]?.[1] || [];
+                    const filenameByKey = new Map();
+                    metadataItems.forEach((metadata, index) => {
+                        const mediaKey = metadata?.[0] || batch[index]?.mediaKey;
+                        const filename = metadata?.[1]?.[3];
+                        if (mediaKey && filename) filenameByKey.set(mediaKey, filename);
+                    });
+                    batch.forEach(item => {
+                        item.filename = filenameByKey.get(item.mediaKey) || item.filename || '(unknown)';
+                    });
+                } catch (error) {
+                    console.warn('Failed to resolve filename batch:', error);
+                    batch.forEach(item => {
+                        item.filename = item.filename || '(unknown)';
+                    });
+                }
+            }
+        }
+
+        await Promise.all(Array.from(
+            { length: Math.min(4, batches.length) },
+            () => worker()
+        ));
+    }
+
     async function startScanningWorkflow() {
         if (!albumMediaKey || isWorking) return;
 
@@ -1106,6 +1325,7 @@
         setButtonLabel(scanBtn, 'Scanning album');
         setPanelStatus('Scanning album…', '');
         setProgress(0);
+        clearIndividualLinks();
 
         try {
             let albumItems = [];
@@ -1136,14 +1356,17 @@
                 return;
             }
 
-            const previousUrls = new Map(fetchedItems.map(item => [item.mediaKey, item.downloadUrl]));
+            const previousItems = new Map(fetchedItems.map(item => [item.mediaKey, item]));
             fetchedItems = albumItems.map(mediaKey => ({
                 mediaKey,
-                downloadUrl: previousUrls.get(mediaKey) || null
+                downloadUrl: previousItems.get(mediaKey)?.downloadUrl || null,
+                filename: previousItems.get(mediaKey)?.filename || null
             }));
             
-            // Immediately resolve all download URLs
+            // Resolve filenames alongside direct links without slowing the URL pipeline.
+            const filenamePromise = resolveAllFilenames();
             await resolveAllDownloadUrls();
+            await filenamePromise;
 
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
             const failedCount = total - urls.length;
@@ -1165,6 +1388,7 @@
                 setProgress(Math.round((urls.length / total) * 100), 'error');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
+                renderIndividualLinks();
             } else {
                 setButtonLabel(scanBtn, 'Refresh links');
                 setButtonLabel(copyBtn, 'Copy');
@@ -1173,6 +1397,7 @@
                 setProgress(100, 'success');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
+                renderIndividualLinks();
             }
         } catch (error) {
             console.error('Fetch error:', error);
