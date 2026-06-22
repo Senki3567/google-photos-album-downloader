@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.7
+// @version      3.7.1
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -545,7 +545,7 @@
             box-shadow: none;
         }
         .gpd-action-btn {
-            border-radius: 16px;
+            border-radius: 18px;
             border-color: var(--gpd-glass-outline);
             background: transparent;
             box-shadow: none;
@@ -557,12 +557,12 @@
                 border-color 160ms ease;
         }
         .gpd-action-btn:hover:not(:disabled) {
-            border-radius: 22px;
+            border-radius: 24px;
             background: var(--gpd-glass-hover);
         }
         .gpd-action-btn:active:not(:disabled) {
-            border-radius: 12px;
-            transform: scale(0.97);
+            border-radius: 14px;
+            transform: scale(0.94);
         }
         .gpd-action-btn-primary {
             color: var(--gpd-expressive-on-container) !important;

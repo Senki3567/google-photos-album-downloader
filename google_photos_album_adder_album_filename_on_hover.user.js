@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.7.0
+// @version      1.7.2
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -452,7 +452,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       backdrop-filter: blur(10px) saturate(180%);
       -webkit-backdrop-filter: blur(10px) saturate(180%);
       border: 1px solid var(--gp-card-border);
-      border-radius: 8px;
+      border-radius: var(--gpd-album-card-radius, 12px);
       padding: 8px;
       color: var(--gp-card-text);
       font-size: 11px;
@@ -710,7 +710,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       left: 8px;
       right: 8px;
       padding: 10px;
-      border-radius: 16px;
+      border-radius: var(--gpd-album-card-radius, 12px);
       border-color: var(--gp-card-border);
       background: var(--gp-card-bg);
       color: var(--gp-card-text);
@@ -925,10 +925,14 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
     .gp-album-access-btn:hover {
       border-radius: 24px;
     }
+    .gp-album-access-btn:active {
+      border-radius: 14px;
+      transform: scale(0.94);
+    }
     .gpd-album-hover-details {
       overflow: hidden;
       isolation: isolate;
-      border-radius: 24px;
+      border-radius: var(--gpd-album-card-radius, 12px);
       background: var(--gp-glass-surface);
       box-shadow: var(--gp-glass-elevation);
     }
@@ -1632,6 +1636,26 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
     return m ? m[2] : null;
   }
 
+  function syncAlbumOverlayRadius(card, imgContainer, overlay) {
+    const candidates = [imgContainer, card.querySelector('img'), card].filter(Boolean);
+    const radiusSource = candidates.find(candidate => {
+      const style = window.getComputedStyle(candidate);
+      return [
+        style.borderTopLeftRadius,
+        style.borderTopRightRadius,
+        style.borderBottomRightRadius,
+        style.borderBottomLeftRadius
+      ].some(radius => Number.parseFloat(radius) > 0);
+    });
+
+    if (radiusSource) {
+      overlay.style.setProperty(
+        '--gpd-album-card-radius',
+        window.getComputedStyle(radiusSource).borderRadius
+      );
+    }
+  }
+
   function renderFileList(container, items) {
     container.innerHTML = '';
     if (!items || !items.length) {
@@ -1728,6 +1752,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
         overlay.appendChild(listContainer);
         
         imgContainer.appendChild(overlay);
+        syncAlbumOverlayRadius(card, imgContainer, overlay);
     } else {
         sizeText = overlay.querySelector('span');
         listContainer = overlay.querySelector('.gpd-album-hover-list');
@@ -1746,7 +1771,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
         if (cached.isLoading) {
             sizeText.textContent = 'Loading album details…';
         } else {
-            sizeText.textContent = `${cached.count} items · ${formatBytes(cached.size)}`;
+            sizeText.textContent = formatBytes(cached.size);
             renderFileList(listContainer, cached.items);
         }
         return;
@@ -1769,7 +1794,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
             time: Date.now()
         });
         if (extractAlbumKey(card) === key && card.matches(':hover, :focus-within')) {
-            sizeText.textContent = `${details.count} items · ${formatBytes(details.size)}`;
+            sizeText.textContent = formatBytes(details.size);
             renderFileList(listContainer, details.items);
         }
     } catch (err) {
