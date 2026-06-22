@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.8.7
+// @version      3.8.8
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -25,7 +25,7 @@
         return;
     }
 
-    console.log('[GP Downloader] Userscript 3.8.7 injected.');
+    console.log('[GP Downloader] Userscript 3.8.8 injected.');
 
     // Material Design SVG Paths
     const PATH_DOWNLOAD = "M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z";
@@ -327,7 +327,8 @@
             align-items: center;
             gap: 12px;
         }
-        .gpd-brand-mark {
+        .gpd-brand-mark,
+        .gpd-close-btn {
             width: 40px;
             height: 40px;
             flex: 0 0 40px;
@@ -343,11 +344,13 @@
             padding: 0;
             transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
         }
-        .gpd-brand-mark:hover {
+        .gpd-brand-mark:hover,
+        .gpd-close-btn:hover {
             background: var(--gpd-surface-container);
             color: var(--gpd-text);
         }
-        .gpd-brand-mark:active {
+        .gpd-brand-mark:active,
+        .gpd-close-btn:active {
             transform: scale(0.95);
         }
         .gpd-heading-group {
@@ -367,23 +370,6 @@
             color: var(--gpd-text-secondary);
             font-size: 12px;
             line-height: 1.4;
-        }
-        .gpd-close-btn {
-            width: 40px;
-            height: 40px;
-            flex: 0 0 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 0;
-            border-radius: 50%;
-            background: transparent;
-            color: var(--gpd-text-secondary);
-            cursor: pointer;
-        }
-        .gpd-close-btn:hover {
-            background: var(--gpd-surface-container);
-            color: var(--gpd-text);
         }
         .gpd-actions {
             display: grid;
@@ -544,34 +530,22 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
         }
-        .gpd-brand-mark {
+        .gpd-brand-mark,
+        .gpd-close-btn {
             border-radius: 14px;
             color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-primary);
             box-shadow: none;
+            border: none;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
         }
-        .gpd-brand-mark:hover {
-            background: var(--gpd-glass-hover);
-        }
-        .gpd-close-btn {
-            border-radius: 14px;
-            border: 1px solid var(--gpd-glass-outline);
-            background: transparent;
-            box-shadow: none;
-            transition:
-                border-radius 180ms var(--gpd-shape-motion),
-                background-color 160ms ease,
-                color 160ms ease,
-                border-color 160ms ease;
-        }
+        .gpd-brand-mark:hover,
         .gpd-close-btn:hover {
-            border-radius: 14px;
-            color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-hover);
         }
+        .gpd-brand-mark:active,
         .gpd-close-btn:active {
-            border-radius: 999px;
-            transform: none;
+            transform: scale(0.95);
         }
         .gpd-action-btn {
             border-radius: 18px;
@@ -632,6 +606,12 @@
             gap: 4px;
             overflow-y: auto;
             overscroll-behavior: contain;
+            scrollbar-width: none;
+        }
+        .gpd-link-list::-webkit-scrollbar {
+            display: none;
+        }
+        .gpd-link-list.gpd-has-scroll {
             scrollbar-width: thin;
             scrollbar-color: var(--gpd-glass-outline) transparent;
             margin-right: -14px;
@@ -639,13 +619,14 @@
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
             mask-image: linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
         }
-        .gpd-link-list::-webkit-scrollbar {
+        .gpd-link-list.gpd-has-scroll::-webkit-scrollbar {
+            display: block;
             width: 6px;
         }
-        .gpd-link-list::-webkit-scrollbar-track {
+        .gpd-link-list.gpd-has-scroll::-webkit-scrollbar-track {
             background: transparent;
         }
-        .gpd-link-list::-webkit-scrollbar-thumb {
+        .gpd-link-list.gpd-has-scroll::-webkit-scrollbar-thumb {
             border-radius: 999px;
             background: var(--gpd-glass-outline);
         }
@@ -670,6 +651,8 @@
             text-align: left;
             text-overflow: ellipsis;
             white-space: nowrap;
+            user-select: none;
+            -webkit-user-select: none;
         }
         .gpd-link-item-btn {
             width: 28px;
@@ -796,7 +779,10 @@
     }
 
     function clearIndividualLinks() {
-        if (linkList) linkList.replaceChildren();
+        if (linkList) {
+            linkList.replaceChildren();
+            linkList.classList.remove('gpd-has-scroll');
+        }
         if (linkListSection) linkListSection.dataset.visible = 'false';
     }
 
@@ -825,6 +811,9 @@
             const name = document.createElement('span');
             name.className = 'gpd-link-item-name';
             name.textContent = filename;
+            name.addEventListener('scroll', () => {
+                name.scrollLeft = 0;
+            });
 
             const copyBtn = document.createElement('button');
             copyBtn.type = 'button';
@@ -879,6 +868,13 @@
             linkList.appendChild(row);
         });
         linkListSection.dataset.visible = 'true';
+        requestAnimationFrame(() => {
+            if (linkList.scrollHeight > linkList.clientHeight) {
+                linkList.classList.add('gpd-has-scroll');
+            } else {
+                linkList.classList.remove('gpd-has-scroll');
+            }
+        });
     }
 
     function init() {
@@ -950,7 +946,7 @@
         copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'gpd-action-btn';
-        setButtonContent(copyBtn, PATH_LINK, 'Download files');
+        setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
         copyBtn.dataset.mode = 'fetch';
         actions.appendChild(copyBtn);
 
@@ -1094,7 +1090,7 @@
                 setProgress(0, 100);
                 if (copyBtn) {
                     copyBtn.disabled = false;
-                    setButtonContent(copyBtn, PATH_LINK, 'Download files');
+                    setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
                     copyBtn.dataset.mode = 'fetch';
                 }
                 if (downloadAllBtn) {
@@ -1211,7 +1207,7 @@
         if (!filename) {
             filename = await requestDownloadFilename(item.downloadUrl, false);
         }
-        if (filename) item.filename = filename;
+        if (filename) item.filename = fixEncodingCorruption(filename);
         return filename;
     }
 
@@ -1284,7 +1280,7 @@
                     metadataItems.forEach((metadata, index) => {
                         const mediaKey = metadata?.[0] || batch[index]?.mediaKey;
                         const filename = metadata?.[1]?.[3];
-                        if (mediaKey && filename) filenameByKey.set(mediaKey, filename);
+                        if (mediaKey && filename) filenameByKey.set(mediaKey, fixEncodingCorruption(filename));
                     });
                     batch.forEach(item => {
                         item.filename = filenameByKey.get(item.mediaKey) || item.filename || '(unknown)';
@@ -1304,6 +1300,37 @@
         ));
     }
 
+    function safeDecodeUriComponent(str) {
+        if (!str) return str;
+        try {
+            if (/%[0-9A-Fa-f]{2}/.test(str)) {
+                return decodeURIComponent(str);
+            }
+        } catch {}
+        return str;
+    }
+
+    function fixEncodingCorruption(str) {
+        if (!str) return str;
+        let decoded = str;
+        try {
+            decoded = safeDecodeUriComponent(str);
+        } catch {}
+
+        try {
+            const len = decoded.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                const code = decoded.charCodeAt(i);
+                if (code > 255) return decoded;
+                bytes[i] = code;
+            }
+            return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch {
+            return decoded;
+        }
+    }
+
     function decodeHeaderFilename(value) {
         if (!value) return null;
 
@@ -1311,14 +1338,15 @@
         if (extendedMatch) {
             const encodedName = extendedMatch[1].trim().replace(/^["']|["']$/g, '');
             try {
-                return decodeURIComponent(encodedName);
+                return fixEncodingCorruption(decodeURIComponent(encodedName));
             } catch {
-                return encodedName;
+                return fixEncodingCorruption(encodedName);
             }
         }
 
         const basicMatch = value.match(/filename\s*=\s*(?:"([^"]+)"|([^;]+))/i);
-        return basicMatch ? (basicMatch[1] || basicMatch[2]).trim() : null;
+        const name = basicMatch ? (basicMatch[1] || basicMatch[2]).trim() : null;
+        return fixEncodingCorruption(name);
     }
 
     function extractFilenameFromResponseHeaders(responseHeaders) {
@@ -1338,11 +1366,11 @@
             const parsedUrl = new URL(downloadUrl);
             for (const key of ['filename', 'file', 'name']) {
                 const value = parsedUrl.searchParams.get(key);
-                if (value) return value;
+                if (value) return fixEncodingCorruption(value);
             }
 
             const lastSegment = decodeURIComponent(parsedUrl.pathname.split('/').pop() || '');
-            return /\.[a-z0-9]{2,8}$/i.test(lastSegment) ? lastSegment : null;
+            return /\.[a-z0-9]{2,8}$/i.test(lastSegment) ? fixEncodingCorruption(lastSegment) : null;
         } catch {
             return null;
         }
@@ -1452,7 +1480,7 @@
         setProgress(0, 100);
         if (copyBtn) {
             copyBtn.disabled = false;
-            setButtonContent(copyBtn, PATH_LINK, 'Download files');
+            setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
             copyBtn.dataset.mode = 'fetch';
         }
         if (downloadAllBtn) {
@@ -1539,14 +1567,14 @@
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
             } else if (failedCount > 0) {
-                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length}`);
+                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} files`);
                 copyBtn.dataset.mode = 'copy';
                 setProgress(urls.length, total, 'error');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
                 renderIndividualLinks();
             } else {
-                setButtonContent(copyBtn, PATH_COPY, 'Copy all');
+                setButtonContent(copyBtn, PATH_COPY, `Copy ${total} files`);
                 copyBtn.dataset.mode = 'copy';
                 setProgress(total, total, 'success');
                 copyBtn.disabled = false;
@@ -1578,13 +1606,13 @@
             setButtonContent(copyBtn, PATH_CHECK, 'Copied');
             
             setTimeout(() => {
-                setButtonContent(copyBtn, PATH_COPY, 'Copy all');
+                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} files`);
             }, 3000);
 
         } catch (error) {
             console.error('Copy error:', error);
             setButtonLabel(copyBtn, 'Copy failed');
-            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, 'Copy all'), 2500);
+            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} files`), 2500);
         }
     }
 
