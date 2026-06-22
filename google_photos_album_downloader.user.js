@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.5
+// @version      3.6
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -459,6 +459,143 @@
             .gpd-progress-fill {
                 transition-duration: 1ms !important;
             }
+        }
+
+        /* Material 3 Expressive + Pixel translucent surfaces */
+        body {
+            --gpd-expressive: #0b57d0;
+            --gpd-expressive-container: rgba(168, 199, 250, 0.78);
+            --gpd-expressive-on-container: #041e49;
+            --gpd-secondary-container: rgba(220, 198, 255, 0.34);
+            --gpd-tertiary-container: rgba(196, 238, 208, 0.28);
+            --gpd-glass: rgba(247, 249, 255, 0.68);
+            --gpd-glass-strong: rgba(247, 249, 255, 0.82);
+            --gpd-glass-highlight: rgba(255, 255, 255, 0.76);
+            --gpd-glass-outline: rgba(255, 255, 255, 0.68);
+            --gpd-glass-shadow: rgba(45, 55, 72, 0.2);
+            --gpd-state-layer: rgba(11, 87, 208, 0.1);
+            --gpd-spring: cubic-bezier(0.2, 0, 0, 1.35);
+        }
+        body.gp-dark-mode {
+            --gpd-expressive: #a8c7fa !important;
+            --gpd-expressive-container: rgba(18, 72, 152, 0.78) !important;
+            --gpd-expressive-on-container: #d3e3fd !important;
+            --gpd-secondary-container: rgba(92, 69, 123, 0.34) !important;
+            --gpd-tertiary-container: rgba(45, 92, 62, 0.28) !important;
+            --gpd-glass: rgba(24, 28, 36, 0.66) !important;
+            --gpd-glass-strong: rgba(28, 32, 41, 0.82) !important;
+            --gpd-glass-highlight: rgba(255, 255, 255, 0.14) !important;
+            --gpd-glass-outline: rgba(255, 255, 255, 0.18) !important;
+            --gpd-glass-shadow: rgba(0, 0, 0, 0.46) !important;
+            --gpd-state-layer: rgba(168, 199, 250, 0.12) !important;
+        }
+        #gpd-trigger-btn {
+            border-radius: 18px;
+            border-color: var(--gpd-glass-outline);
+            background:
+                radial-gradient(circle at 18% 12%, var(--gpd-glass-highlight), transparent 44%),
+                linear-gradient(145deg, var(--gpd-secondary-container), transparent 54%),
+                var(--gpd-glass-strong);
+            box-shadow:
+                inset 0 1px 0 var(--gpd-glass-highlight),
+                0 8px 24px var(--gpd-glass-shadow);
+            backdrop-filter: blur(28px) saturate(150%);
+            -webkit-backdrop-filter: blur(28px) saturate(150%);
+            transition:
+                border-radius 260ms var(--gpd-spring),
+                transform 260ms var(--gpd-spring),
+                background-color 180ms ease,
+                box-shadow 180ms ease,
+                opacity 160ms ease;
+        }
+        #gpd-trigger-btn:hover {
+            border-radius: 24px;
+            color: var(--gpd-expressive-on-container);
+            background:
+                radial-gradient(circle at 18% 12%, var(--gpd-glass-highlight), transparent 46%),
+                var(--gpd-expressive-container);
+            box-shadow:
+                inset 0 1px 0 var(--gpd-glass-highlight),
+                0 12px 30px color-mix(in srgb, var(--gpd-expressive) 22%, transparent);
+        }
+        #gpd-trigger-btn:active {
+            border-radius: 14px;
+            transform: scale(0.94);
+        }
+        #gpd-panel {
+            overflow: hidden;
+            isolation: isolate;
+            border-radius: 28px;
+            border-color: var(--gpd-glass-outline);
+            background:
+                radial-gradient(circle at 4% 0%, var(--gpd-glass-highlight), transparent 36%),
+                radial-gradient(circle at 104% 12%, var(--gpd-secondary-container), transparent 42%),
+                radial-gradient(circle at 20% 110%, var(--gpd-tertiary-container), transparent 42%),
+                var(--gpd-glass);
+            box-shadow:
+                inset 0 1px 0 var(--gpd-glass-highlight),
+                0 22px 56px var(--gpd-glass-shadow),
+                0 3px 12px rgba(32, 33, 36, 0.12);
+            backdrop-filter: blur(30px) saturate(155%);
+            -webkit-backdrop-filter: blur(30px) saturate(155%);
+        }
+        body.gp-dark-mode #gpd-panel {
+            box-shadow:
+                inset 0 1px 0 var(--gpd-glass-highlight),
+                0 24px 60px var(--gpd-glass-shadow),
+                0 3px 12px rgba(0, 0, 0, 0.3);
+        }
+        .gpd-brand-mark {
+            border-radius: 18px;
+            color: var(--gpd-expressive-on-container);
+            background:
+                radial-gradient(circle at 20% 12%, var(--gpd-glass-highlight), transparent 48%),
+                var(--gpd-expressive-container);
+            box-shadow: inset 0 1px 0 var(--gpd-glass-highlight);
+        }
+        .gpd-status-card {
+            border-radius: 20px;
+            border-color: var(--gpd-glass-outline);
+            background:
+                linear-gradient(145deg, var(--gpd-glass-highlight), transparent 46%),
+                color-mix(in srgb, var(--gpd-glass-strong) 88%, transparent);
+            box-shadow: inset 0 1px 0 var(--gpd-glass-highlight);
+        }
+        .gpd-action-btn {
+            border-radius: 16px;
+            background: color-mix(in srgb, var(--gpd-glass-strong) 68%, transparent);
+            transition:
+                border-radius 260ms var(--gpd-spring),
+                transform 260ms var(--gpd-spring),
+                background-color 160ms ease,
+                color 160ms ease,
+                border-color 160ms ease;
+        }
+        .gpd-action-btn:hover:not(:disabled) {
+            border-radius: 22px;
+            background: color-mix(in srgb, var(--gpd-glass-strong) 82%, var(--gpd-state-layer));
+        }
+        .gpd-action-btn:active:not(:disabled) {
+            border-radius: 12px;
+            transform: scale(0.97);
+        }
+        .gpd-action-btn-primary {
+            color: var(--gpd-expressive-on-container) !important;
+            border-color: transparent;
+            background:
+                radial-gradient(circle at 16% 0%, var(--gpd-glass-highlight), transparent 46%),
+                var(--gpd-expressive-container);
+            box-shadow: inset 0 1px 0 var(--gpd-glass-highlight);
+        }
+        .gpd-action-btn-primary:hover:not(:disabled) {
+            color: var(--gpd-expressive-on-container) !important;
+            background:
+                radial-gradient(circle at 16% 0%, var(--gpd-glass-highlight), transparent 46%),
+                color-mix(in srgb, var(--gpd-expressive-container) 88%, var(--gpd-expressive));
+        }
+        .gpd-progress-fill {
+            background: var(--gpd-expressive);
+            box-shadow: 0 0 10px color-mix(in srgb, var(--gpd-expressive) 55%, transparent);
         }
     `;
     document.head.appendChild(style);

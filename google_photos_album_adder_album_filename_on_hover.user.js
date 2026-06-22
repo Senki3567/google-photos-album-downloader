@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.5.1
+// @version      1.6.0
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -592,16 +592,16 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       left: 8px;
       right: 8px;
       bottom: 8px;
-      padding: 8px;
-      gap: 6px;
+      padding: 0;
+      gap: 0;
       border-radius: 16px;
-      border-color: var(--gp-card-border);
-      background: var(--gp-card-bg);
+      border-color: transparent;
+      background: transparent;
       color: var(--gp-card-text);
       font-size: 12px;
-      box-shadow: var(--gp-card-shadow);
-      backdrop-filter: blur(18px) saturate(110%);
-      -webkit-backdrop-filter: blur(18px) saturate(110%);
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
     }
     .gp-album-link {
       color: var(--gp-link-color);
@@ -611,23 +611,26 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
     .gp-hover-row {
       width: 100%;
-      min-height: 38px;
+      min-height: 44px;
       box-sizing: border-box;
-      padding: 7px 10px;
-      border: 0;
-      border-radius: 12px;
-      background: transparent;
+      padding: 0 14px;
+      border: 1px solid var(--gp-card-border);
+      border-radius: 22px;
+      background: var(--gp-card-bg);
       color: inherit;
       font: inherit;
       text-align: left;
+      box-shadow: var(--gp-card-shadow);
+      backdrop-filter: blur(18px) saturate(110%);
+      -webkit-backdrop-filter: blur(18px) saturate(110%);
     }
     .gp-filename-row {
-      background: var(--gp-surface-container);
-      border: 1px solid color-mix(in srgb, var(--gp-card-border) 70%, transparent);
+      background: var(--gp-card-bg);
     }
     .gp-hover-row:hover,
     .gp-hover-row:focus-visible {
-      background: var(--gp-row-hover);
+      background: color-mix(in srgb, var(--gp-card-bg) 82%, var(--gp-primary-container));
+      border-color: var(--gp-primary);
     }
     .gp-hover-row:active,
     .gpd-album-file-row:active {
@@ -803,6 +806,160 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       #gp-toast {
         transition-duration: 1ms !important;
       }
+    }
+
+    /* Material 3 Expressive + Pixel translucent surfaces */
+    body {
+      --gp-expressive: #0b57d0;
+      --gp-expressive-container: rgba(168, 199, 250, 0.78);
+      --gp-expressive-on-container: #041e49;
+      --gp-secondary-container: rgba(220, 198, 255, 0.34);
+      --gp-tertiary-container: rgba(196, 238, 208, 0.28);
+      --gp-glass: rgba(247, 249, 255, 0.68);
+      --gp-glass-strong: rgba(247, 249, 255, 0.82);
+      --gp-glass-highlight: rgba(255, 255, 255, 0.76);
+      --gp-glass-outline: rgba(255, 255, 255, 0.68);
+      --gp-glass-shadow: rgba(45, 55, 72, 0.2);
+      --gp-state-layer: rgba(11, 87, 208, 0.1);
+      --gp-spring: cubic-bezier(0.2, 0, 0, 1.35);
+    }
+    body.gp-dark-mode {
+      --gp-expressive: #a8c7fa !important;
+      --gp-expressive-container: rgba(18, 72, 152, 0.78) !important;
+      --gp-expressive-on-container: #d3e3fd !important;
+      --gp-secondary-container: rgba(92, 69, 123, 0.34) !important;
+      --gp-tertiary-container: rgba(45, 92, 62, 0.28) !important;
+      --gp-glass: rgba(24, 28, 36, 0.66) !important;
+      --gp-glass-strong: rgba(28, 32, 41, 0.82) !important;
+      --gp-glass-highlight: rgba(255, 255, 255, 0.14) !important;
+      --gp-glass-outline: rgba(255, 255, 255, 0.18) !important;
+      --gp-glass-shadow: rgba(0, 0, 0, 0.46) !important;
+      --gp-state-layer: rgba(168, 199, 250, 0.12) !important;
+    }
+    .gp-hover-row,
+    .gp-toolbar-btn,
+    .gpd-album-hover-details,
+    .gpd-album-file-row {
+      transition:
+        border-radius 260ms var(--gp-spring),
+        transform 260ms var(--gp-spring),
+        background-color 160ms ease,
+        color 160ms ease,
+        border-color 160ms ease,
+        opacity 180ms ease;
+    }
+    .gp-hover-row,
+    .gp-toolbar-btn,
+    .gpd-album-hover-details {
+      border-color: var(--gp-glass-outline);
+      background:
+        radial-gradient(circle at 16% 0%, var(--gp-glass-highlight), transparent 46%),
+        linear-gradient(145deg, var(--gp-secondary-container), transparent 62%),
+        var(--gp-glass);
+      box-shadow:
+        inset 0 1px 0 var(--gp-glass-highlight),
+        0 10px 28px var(--gp-glass-shadow);
+      backdrop-filter: blur(28px) saturate(150%);
+      -webkit-backdrop-filter: blur(28px) saturate(150%);
+    }
+    .gp-hover-row {
+      border-radius: 18px;
+    }
+    .gp-hover-row:hover,
+    .gp-hover-row:focus-visible {
+      border-radius: 24px;
+      border-color: var(--gp-expressive);
+      background:
+        radial-gradient(circle at 16% 0%, var(--gp-glass-highlight), transparent 46%),
+        color-mix(in srgb, var(--gp-glass-strong) 82%, var(--gp-expressive-container));
+      box-shadow:
+        inset 0 1px 0 var(--gp-glass-highlight),
+        0 12px 30px color-mix(in srgb, var(--gp-expressive) 20%, transparent);
+    }
+    .gp-hover-row:active {
+      border-radius: 12px;
+      transform: scale(0.98);
+    }
+    .gp-toolbar-btn {
+      color: var(--gp-card-text);
+      background:
+        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
+        var(--gp-glass-strong);
+    }
+    .gp-toolbar-btn:hover {
+      border-radius: 16px;
+      color: var(--gp-expressive-on-container);
+      border-color: var(--gp-expressive);
+      background:
+        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
+        var(--gp-expressive-container);
+    }
+    body.gp-dark-mode .gp-toolbar-btn {
+      color: var(--gp-card-text) !important;
+      border-color: var(--gp-glass-outline) !important;
+      background:
+        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
+        var(--gp-glass-strong) !important;
+    }
+    body.gp-dark-mode .gp-toolbar-btn:hover {
+      color: var(--gp-expressive-on-container) !important;
+      border-color: var(--gp-expressive) !important;
+      background:
+        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
+        var(--gp-expressive-container) !important;
+    }
+    .gp-toolbar-btn:active {
+      border-radius: 12px;
+      transform: scale(0.92);
+    }
+    .gp-album-access-btn {
+      border-radius: 18px;
+    }
+    .gp-album-access-btn:hover {
+      border-radius: 24px;
+    }
+    .gpd-album-hover-details {
+      overflow: hidden;
+      isolation: isolate;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 4% 0%, var(--gp-glass-highlight), transparent 36%),
+        radial-gradient(circle at 104% 12%, var(--gp-secondary-container), transparent 42%),
+        radial-gradient(circle at 20% 110%, var(--gp-tertiary-container), transparent 42%),
+        var(--gp-glass);
+      box-shadow:
+        inset 0 1px 0 var(--gp-glass-highlight),
+        0 20px 52px var(--gp-glass-shadow),
+        0 3px 12px rgba(32, 33, 36, 0.12);
+    }
+    body.gp-dark-mode .gpd-album-hover-details {
+      box-shadow:
+        inset 0 1px 0 var(--gp-glass-highlight),
+        0 22px 56px var(--gp-glass-shadow),
+        0 3px 12px rgba(0, 0, 0, 0.3);
+    }
+    .gpd-album-summary {
+      border-bottom-color: color-mix(in srgb, var(--gp-expressive) 24%, var(--gp-card-border));
+    }
+    .gpd-album-file-row:hover {
+      border-radius: 16px;
+      background: color-mix(in srgb, var(--gp-state-layer) 72%, var(--gp-glass-strong));
+    }
+    .gpd-album-file-row:active {
+      border-radius: 10px;
+      transform: scale(0.985);
+    }
+    #gp-toast {
+      border-color: var(--gp-glass-outline);
+      border-radius: 20px;
+      background:
+        radial-gradient(circle at 10% 0%, var(--gp-glass-highlight), transparent 44%),
+        var(--gp-glass-strong);
+      box-shadow:
+        inset 0 1px 0 var(--gp-glass-highlight),
+        0 14px 36px var(--gp-glass-shadow);
+      backdrop-filter: blur(28px) saturate(150%);
+      -webkit-backdrop-filter: blur(28px) saturate(150%);
     }
   `;
   document.head.appendChild(style);
