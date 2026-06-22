@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.8.1
+// @version      3.8.2
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -651,13 +651,6 @@
         .gpd-link-list-section[data-visible="true"] {
             display: flex;
         }
-        .gpd-link-list-title {
-            margin: 0;
-            color: var(--gpd-text-secondary);
-            font-size: 12px;
-            font-weight: 500;
-            line-height: 1.4;
-        }
         .gpd-link-list {
             max-height: 210px;
             display: flex;
@@ -740,7 +733,7 @@
     document.head.appendChild(style);
 
     let panel, panelTrigger, panelClose, progressBar, progressFill, statusText, summaryText;
-    let linkListSection, linkList, linkListTitle;
+    let linkListSection, linkList;
     let scanBtn, copyBtn, downloadAllBtn;
     let albumMediaKey = null;
     let authKey = null;
@@ -787,7 +780,6 @@
     function clearIndividualLinks() {
         if (linkList) linkList.replaceChildren();
         if (linkListSection) linkListSection.dataset.visible = 'false';
-        if (linkListTitle) linkListTitle.textContent = 'Individual links';
     }
 
     function getDisplayFilename(item, index) {
@@ -796,7 +788,7 @@
     }
 
     function renderIndividualLinks() {
-        if (!linkList || !linkListSection || !linkListTitle) return;
+        if (!linkList || !linkListSection) return;
 
         const copyableItems = fetchedItems.filter(item => item.downloadUrl);
         linkList.replaceChildren();
@@ -805,7 +797,6 @@
             return;
         }
 
-        linkListTitle.textContent = `Individual links · ${copyableItems.length}`;
         copyableItems.forEach((item) => {
             const originalIndex = fetchedItems.indexOf(item);
             const filename = getDisplayFilename(item, originalIndex);
@@ -958,14 +949,10 @@
         linkListSection.dataset.visible = 'false';
         linkListSection.setAttribute('aria-label', 'Individual download links');
 
-        linkListTitle = document.createElement('h3');
-        linkListTitle.className = 'gpd-link-list-title';
-        linkListTitle.textContent = 'Individual links';
-
         linkList = document.createElement('div');
         linkList.className = 'gpd-link-list';
 
-        linkListSection.append(linkListTitle, linkList);
+        linkListSection.appendChild(linkList);
         panel.appendChild(linkListSection);
         document.body.appendChild(panel);
 
