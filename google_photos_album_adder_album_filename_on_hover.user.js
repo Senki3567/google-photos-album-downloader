@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.6.0
+// @version      1.7.0
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -18,6 +18,7 @@
 MIT License
 
 Copyright (c) 2025 SirCluckingtonX
+Metadata RPC portions Copyright (c) 2024 xob0t
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +39,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981; font-size: 14px; font-weight: bold; background: #064e3b; padding: 4px 8px; border-radius: 4px;');
+console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa; font-size: 14px; font-weight: bold; background: #0b57d0; padding: 4px 8px; border-radius: 4px;');
 
 (async function () {
   'use strict';
@@ -49,7 +50,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   const HOTKEY_ADD    = { key: 'Q', shift: true,  alt: false, ctrl: false, meta: false };
   const HOTKEY_RECALL = { key: 'W', shift: true,   alt: false, ctrl: false, meta: false };
   const PERSIST_NOT_IN_ALBUMS = true;
-  const HIGHLIGHT_UNALBUMED = true; // Adds a red border to photos not in any albums
+  const HIGHLIGHT_UNALBUMED = true; // Adds an accent border to photos not in any albums
   const CACHE_TTL = 600000;
   const RPC_TIMEOUT_MS = 15000;
   const RPC_MAX_ATTEMPTS = 2;
@@ -57,7 +58,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   /* =============================================================
    *  2. SHARED STATE & HELPERS
    * ============================================================= */
-  let hasApi = false;
   let lastThemeCheck = 0;
   // Resolve and update theme classes dynamically based on body text color
   function updateThemeClass() {
@@ -376,7 +376,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       --gp-link-hover: #1557b0 !important;
     }
 
-    /* Unified Premium Hover Card */
+    /* Shared hover card structure */
     .gp-hover-card {
       position: absolute;
       left: 6px;
@@ -808,10 +808,9 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       }
     }
 
-    /* Material 3 Expressive + Pixel translucent surfaces */
+    /* Unified Google Photos blue + translucent surface theme */
     body {
       --gp-expressive: #0b57d0;
-      --gp-expressive-container: rgba(11, 87, 208, 0.1);
       --gp-expressive-on-container: #041e49;
       --gp-primary: #0b57d0;
       --gp-primary-container: rgba(11, 87, 208, 0.1);
@@ -823,10 +822,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       --gp-text-dim: #0b57d0;
       --gp-focus: #0b57d0;
       --gp-glass: rgba(255, 255, 255, 0.72);
-      --gp-glass-highlight: rgba(255, 255, 255, 0.72);
       --gp-glass-outline: rgba(60, 64, 67, 0.16);
       --gp-glass-shadow: rgba(32, 33, 36, 0.14);
-      --gp-state-layer: rgba(11, 87, 208, 0.08);
       --gp-glass-surface: var(--gp-glass);
       --gp-glass-hover: color-mix(in srgb, var(--gp-glass) 92%, var(--gp-expressive));
       --gp-glass-primary: color-mix(in srgb, var(--gp-glass) 88%, var(--gp-expressive));
@@ -835,7 +832,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
     body.gp-dark-mode {
       --gp-expressive: #a8c7fa !important;
-      --gp-expressive-container: rgba(168, 199, 250, 0.12) !important;
       --gp-expressive-on-container: #d3e3fd !important;
       --gp-primary: #a8c7fa !important;
       --gp-primary-container: rgba(168, 199, 250, 0.12) !important;
@@ -847,10 +843,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       --gp-text-dim: #a8c7fa !important;
       --gp-focus: #a8c7fa !important;
       --gp-glass: rgba(28, 28, 30, 0.72) !important;
-      --gp-glass-highlight: rgba(255, 255, 255, 0.12) !important;
       --gp-glass-outline: rgba(255, 255, 255, 0.14) !important;
       --gp-glass-shadow: rgba(0, 0, 0, 0.28) !important;
-      --gp-state-layer: rgba(168, 199, 250, 0.1) !important;
     }
     body.gp-light-mode {
       --gp-primary: #0b57d0 !important;
@@ -990,7 +984,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     el._t = setTimeout(() => (el.dataset.visible = 'false'), duration);
   };
 
-  const busyTexts = [/Adding/i, /Deleting album/i, /Album deleted/i, /Waiting for Photos/i, /\d+\s+(?:item|items)\s+(?:added to album|already in album|new item added)/i];
+  const busyTexts = [/Adding/i, /Deleting album/i, /Album deleted/i, /Waiting for Photos/i, /\b\d+\s+(?:item|items)\s+(?:added to album|already in album|new item added)/i];
   function isBusy() {
     return qsa('aside.zyTWof-Ng57nc,[aria-live],[role="status"]').some(el => {
       if (!visible(el)) return false;
@@ -1175,15 +1169,63 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
   }
 
+  // Standalone metadata helpers. RPC shapes and response indices follow the
+  // Google Photos Toolkit API implementation (MIT), embedded here so this
+  // userscript does not require that toolkit to be installed.
+  function parseAlbumSummary(albumData) {
+    const albumMeta = albumData?.at(-1)?.[72930366];
+    return {
+      mediaKey: albumData?.[0] || '',
+      title: albumMeta?.[1] || ''
+    };
+  }
+
+  function parseItemInfoExt(raw) {
+    const item = raw?.[0];
+    if (!item) return null;
+    return {
+      mediaKey: item?.[0],
+      fileName: item?.[2],
+      size: item?.[5],
+      albums: (item?.[19] || []).map(parseAlbumSummary).filter(album => album.mediaKey && album.title)
+    };
+  }
+
+  function parseBatchMediaInfo(raw) {
+    const items = raw?.[0]?.[1];
+    if (!Array.isArray(items)) return [];
+    return items.map(item => ({
+      mediaKey: item?.[0],
+      fileName: item?.[1]?.[3],
+      size: item?.[1]?.[9]
+    })).filter(item => item.mediaKey);
+  }
+
+  async function getItemInfoExt(key) {
+    const authKey = new URLSearchParams(window.location.search).get('key');
+    const raw = await sendRpc('fDcn4b', [key, 1, authKey, null, 1]);
+    const parsed = parseItemInfoExt(raw);
+    if (!parsed) throw new Error(`No metadata returned for ${key}`);
+    return parsed;
+  }
+
+  async function getBatchMediaInfo(keys) {
+    const mappedKeys = keys.map(key => [key]);
+    const metadataFields = Array(24).fill(null);
+    const trailingFields = Array(10).fill(null);
+    const requestData = [[[mappedKeys], [[...metadataFields, [], ...trailingFields, []]]]];
+    return parseBatchMediaInfo(await sendRpc('EWgK9e', requestData));
+  }
+
   async function fetchSharedExtInfo(key) {
     log(`fetchSharedExtInfo initiated for: ${key}`);
-    if (!hasApi || !key) return { names: [], filename: '(unknown)', size: null };
+    if (!key) return { names: [], filename: '(unknown)', size: null };
     if (activeSharedRequests.has(key)) return activeSharedRequests.get(key);
 
     const req = (async () => {
       try {
         const info = await runWithRetry(
-          () => unsafeWindow.gptkApi.getItemInfoExt(key),
+          () => getItemInfoExt(key),
           `getItemInfoExt(${key})`
         );
         const fn = info?.fileName || info?.filename || info?.originalFilename || '(unknown)';
@@ -1242,15 +1284,21 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   }
 
   async function flushFilenamePrefetchQueue() {
-    if (filenamePrefetchQueue.size === 0 || !hasApi) return;
+    if (filenamePrefetchQueue.size === 0) return;
     const keysToFetch = Array.from(filenamePrefetchQueue);
     filenamePrefetchQueue.clear();
     log(`Flushing bulk filename prefetch for ${keysToFetch.length} items`);
     try {
-      const results = await runWithRetry(
-        () => unsafeWindow.gptkApi.getBatchMediaInfo(keysToFetch),
-        `getBatchMediaInfo(${keysToFetch.length})`
-      );
+      const results = [];
+      const chunkSize = 100;
+      for (let offset = 0; offset < keysToFetch.length; offset += chunkSize) {
+        const chunk = keysToFetch.slice(offset, offset + chunkSize);
+        const chunkResults = await runWithRetry(
+          () => getBatchMediaInfo(chunk),
+          `getBatchMediaInfo(${chunk.length})`
+        );
+        results.push(...chunkResults);
+      }
       if (Array.isArray(results)) {
         results.forEach(info => {
           if (info && info.mediaKey) {
@@ -1268,7 +1316,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   }
 
   const visibleObserver = new IntersectionObserver((entries) => {
-    if (!hasApi) return;
     entries.forEach(entry => {
       const key = extractMediaKey(entry.target);
       if (!key) return;
@@ -1291,10 +1338,6 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
    * ============================================================= */
   async function showHoverUI(tile, e) {
     try {
-      if (!hasApi) {
-        log('Hover ignored: GPTK API has not loaded yet.');
-        return;
-      }
       if (!tile) return;
 
       const key = extractMediaKey(tile);
@@ -1770,19 +1813,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   }
 
   function scan() {
+    if (document.hidden) return;
     updateThemeClass();
     
-    // Safety cleanup for stuck hover menus
-    if (activeHoveredTile && !activeHoveredTile.matches(':hover, :focus-within')) {
-      activeHoveredTile._gpIsHovered = false;
-      hideHoverUI(activeHoveredTile);
-      activeHoveredTile = null;
-    }
-    if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover, :focus-within')) {
-      activeHoveredAlbumCard._gpIsHovered = false;
-      handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
-      activeHoveredAlbumCard = null;
-    }
+    cleanupInactiveHoverUI();
 
     document.querySelectorAll('.RY3tic').forEach(tile => {
       if (!tile.hasAttribute('data-gp-master-attached')) {
@@ -1807,6 +1841,19 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
         }
       }
     });
+  }
+
+  function cleanupInactiveHoverUI() {
+    if (activeHoveredTile && !activeHoveredTile.matches(':hover, :focus-within')) {
+      activeHoveredTile._gpIsHovered = false;
+      hideHoverUI(activeHoveredTile);
+      activeHoveredTile = null;
+    }
+    if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover, :focus-within')) {
+      activeHoveredAlbumCard._gpIsHovered = false;
+      handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
+      activeHoveredAlbumCard = null;
+    }
   }
 
   let scanTimer = null;
@@ -1928,33 +1975,25 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }, 0);
   });
 
-  // Global throttled mousemove backup to clean up stuck hover menus
+  // Throttled fallback cleanup for hover states missed by recycled DOM nodes.
   let mousemoveTimeout = null;
   document.body.addEventListener('mousemove', () => {
     if (mousemoveTimeout) return;
     mousemoveTimeout = setTimeout(() => {
-      // 1. Clean up tile hover
-      if (activeHoveredTile && !activeHoveredTile.matches(':hover, :focus-within')) {
-        activeHoveredTile._gpIsHovered = false;
-        hideHoverUI(activeHoveredTile);
-        activeHoveredTile = null;
-      }
-      // 2. Clean up album card hover
-      if (activeHoveredAlbumCard && !activeHoveredAlbumCard.matches(':hover, :focus-within')) {
-        activeHoveredAlbumCard._gpIsHovered = false;
-        handleAlbumMouseLeave({ currentTarget: activeHoveredAlbumCard });
-        activeHoveredAlbumCard = null;
-      }
+      cleanupInactiveHoverUI();
       mousemoveTimeout = null;
-    }, 100);
-  });
+    }, 250);
+  }, { passive: true });
 
   new MutationObserver(debouncedScan).observe(document.body, { childList: true, subtree: true });
   setInterval(scan, 1500);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) debouncedScan();
+  });
   scan(); // initial attach
 
   /* =============================================================
-   *  8. INIT & GPTK DETECTION
+   *  8. INITIALIZATION
    * ============================================================= */
   let cacheClearTimer = null;
   const triggerCacheClear = () => {
@@ -1998,21 +2037,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   });
   bannerObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
 
-  let tries = 0;
-  log('Waiting for GPTK API to load...');
-  while (!unsafeWindow.gptkApi && tries < 40) {
-    await sleep(300);
-    tries++;
-  }
-  hasApi = !!unsafeWindow.gptkApi;
-  if (hasApi) {
-    log('GPTK API detected successfully. Hover overlays are now active.');
-    document.querySelectorAll('.RY3tic[data-gp-master-attached]').forEach(tile => {
-      visibleObserver.unobserve(tile);
-      visibleObserver.observe(tile);
-    });
-    scan(); // Rescan to immediately trigger prefetch for visible items
-  } else {
-    console.warn('[GP-Master] GPTK API not found. Album and Filename overlays disabled.');
-  }
+  log('Standalone metadata API ready. Hover overlays are active.');
+  document.querySelectorAll('.RY3tic[data-gp-master-attached]').forEach(tile => {
+    visibleObserver.unobserve(tile);
+    visibleObserver.observe(tile);
+  });
+  scan(); // Rescan to immediately trigger prefetch for visible items
 })();

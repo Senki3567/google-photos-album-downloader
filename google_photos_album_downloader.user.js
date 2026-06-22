@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.6
+// @version      3.7
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -461,20 +461,17 @@
             }
         }
 
-        /* Material 3 Expressive + Pixel translucent surfaces */
+        /* Unified Google Photos blue + translucent surface theme */
         body {
             --gpd-expressive: #0b57d0;
-            --gpd-expressive-container: rgba(11, 87, 208, 0.1);
             --gpd-expressive-on-container: #041e49;
             --gpd-success: #0b57d0;
             --gpd-error: #0b57d0;
             --gpd-focus: #0b57d0;
             --gpd-accent: #0b57d0;
             --gpd-glass: rgba(255, 255, 255, 0.72);
-            --gpd-glass-highlight: rgba(255, 255, 255, 0.72);
             --gpd-glass-outline: rgba(60, 64, 67, 0.16);
             --gpd-glass-shadow: rgba(32, 33, 36, 0.14);
-            --gpd-state-layer: rgba(11, 87, 208, 0.08);
             --gpd-glass-surface: var(--gpd-glass);
             --gpd-glass-hover: color-mix(in srgb, var(--gpd-glass) 92%, var(--gpd-expressive));
             --gpd-glass-primary: color-mix(in srgb, var(--gpd-glass) 88%, var(--gpd-expressive));
@@ -483,17 +480,14 @@
         }
         body.gp-dark-mode {
             --gpd-expressive: #a8c7fa !important;
-            --gpd-expressive-container: rgba(168, 199, 250, 0.12) !important;
             --gpd-expressive-on-container: #d3e3fd !important;
             --gpd-success: #a8c7fa !important;
             --gpd-error: #a8c7fa !important;
             --gpd-focus: #a8c7fa !important;
             --gpd-accent: #a8c7fa !important;
             --gpd-glass: rgba(28, 28, 30, 0.72) !important;
-            --gpd-glass-highlight: rgba(255, 255, 255, 0.12) !important;
             --gpd-glass-outline: rgba(255, 255, 255, 0.14) !important;
             --gpd-glass-shadow: rgba(0, 0, 0, 0.28) !important;
-            --gpd-state-layer: rgba(168, 199, 250, 0.1) !important;
         }
         #gpd-trigger-btn {
             border-radius: 18px;
@@ -528,9 +522,6 @@
             box-shadow: var(--gpd-glass-elevation);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-        }
-        body.gp-dark-mode #gpd-panel {
-            box-shadow: var(--gpd-glass-elevation);
         }
         .gpd-brand-mark {
             border-radius: 18px;
@@ -830,6 +821,7 @@
         updateThemeClass();
         handleUrlChange();
         setInterval(() => {
+            if (document.hidden) return;
             updateThemeClass();
             if (location.href !== lastUrl) {
                 if (isWorking) return;
@@ -837,6 +829,15 @@
                 handleUrlChange();
             }
         }, 1000);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                updateThemeClass();
+                if (location.href !== lastUrl && !isWorking) {
+                    lastUrl = location.href;
+                    handleUrlChange();
+                }
+            }
+        });
     }
 
     function handleUrlChange() {
