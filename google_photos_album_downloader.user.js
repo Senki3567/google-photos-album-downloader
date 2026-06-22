@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.8.0
+// @version      3.8.1
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -296,7 +296,7 @@
             outline-offset: 2px;
         }
         #gpd-panel {
-            width: 320px;
+            width: 380px;
             max-width: calc(100vw - 32px);
             padding: 16px;
             gap: 14px;
@@ -940,7 +940,7 @@
         copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'gpd-action-btn';
-        setButtonContent(copyBtn, PATH_COPY, 'Copy');
+        setButtonContent(copyBtn, PATH_COPY, 'Copy all');
         copyBtn.disabled = true;
         actions.appendChild(copyBtn);
 
@@ -1111,7 +1111,7 @@
                 }
                 if (copyBtn) {
                     copyBtn.disabled = true;
-                    setButtonContent(copyBtn, PATH_COPY, 'Copy');
+                    setButtonContent(copyBtn, PATH_COPY, 'Copy all');
                 }
                 if (downloadAllBtn) {
                     downloadAllBtn.disabled = true;
@@ -1378,7 +1378,7 @@
                 downloadAllBtn.disabled = true;
             } else if (failedCount > 0) {
                 setButtonLabel(scanBtn, `Retry ${failedCount} missing`);
-                setButtonLabel(copyBtn, `Copy ${urls.length}`);
+                setButtonLabel(copyBtn, `Copy all ${urls.length}`);
                 setButtonLabel(downloadAllBtn, `Download ${urls.length}`);
                 setPanelStatus(
                     `${urls.length}/${total} links ready`,
@@ -1391,7 +1391,7 @@
                 renderIndividualLinks();
             } else {
                 setButtonLabel(scanBtn, 'Refresh links');
-                setButtonLabel(copyBtn, 'Copy');
+                setButtonLabel(copyBtn, 'Copy all');
                 setButtonLabel(downloadAllBtn, 'Download');
                 setPanelStatus(`${urls.length} links ready`, '', 'success');
                 setProgress(100, 'success');
@@ -1425,14 +1425,14 @@
             setPanelStatus(`${urls.length} links copied`, '', 'success');
             
             setTimeout(() => {
-                setButtonContent(copyBtn, PATH_COPY, 'Copy');
+                setButtonContent(copyBtn, PATH_COPY, 'Copy all');
             }, 3000);
 
         } catch (error) {
             console.error('Copy error:', error);
             setButtonLabel(copyBtn, 'Copy failed');
             setPanelStatus('Copy failed', 'Allow clipboard access and retry.', 'error');
-            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, 'Copy'), 2500);
+            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, 'Copy all'), 2500);
         }
     }
 
