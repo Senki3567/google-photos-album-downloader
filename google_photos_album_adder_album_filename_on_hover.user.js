@@ -811,43 +811,28 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     /* Material 3 Expressive + Pixel translucent surfaces */
     body {
       --gp-expressive: #0b57d0;
-      --gp-expressive-container: rgba(168, 199, 250, 0.78);
+      --gp-expressive-container: rgba(11, 87, 208, 0.1);
       --gp-expressive-on-container: #041e49;
-      --gp-secondary-container: rgba(220, 198, 255, 0.34);
-      --gp-tertiary-container: rgba(196, 238, 208, 0.28);
-      --gp-glass: rgba(247, 249, 255, 0.68);
-      --gp-glass-strong: rgba(247, 249, 255, 0.82);
-      --gp-glass-highlight: rgba(255, 255, 255, 0.76);
-      --gp-glass-outline: rgba(255, 255, 255, 0.68);
-      --gp-glass-shadow: rgba(45, 55, 72, 0.2);
-      --gp-state-layer: rgba(11, 87, 208, 0.1);
-      --gp-glass-surface:
-        radial-gradient(circle at 12% 0%, var(--gp-glass-highlight), transparent 44%),
-        linear-gradient(145deg, var(--gp-secondary-container), transparent 64%),
-        var(--gp-glass);
-      --gp-glass-hover:
-        radial-gradient(circle at 12% 0%, var(--gp-glass-highlight), transparent 44%),
-        color-mix(in srgb, var(--gp-glass) 86%, var(--gp-expressive-container));
-      --gp-glass-primary:
-        radial-gradient(circle at 12% 0%, var(--gp-glass-highlight), transparent 44%),
-        var(--gp-expressive-container);
-      --gp-glass-elevation:
-        inset 0 1px 0 var(--gp-glass-highlight),
-        0 12px 32px var(--gp-glass-shadow);
+      --gp-glass: rgba(255, 255, 255, 0.72);
+      --gp-glass-highlight: rgba(255, 255, 255, 0.72);
+      --gp-glass-outline: rgba(60, 64, 67, 0.16);
+      --gp-glass-shadow: rgba(32, 33, 36, 0.14);
+      --gp-state-layer: rgba(11, 87, 208, 0.08);
+      --gp-glass-surface: var(--gp-glass);
+      --gp-glass-hover: color-mix(in srgb, var(--gp-glass) 92%, var(--gp-expressive));
+      --gp-glass-primary: color-mix(in srgb, var(--gp-glass) 88%, var(--gp-expressive));
+      --gp-glass-elevation: 0 6px 20px var(--gp-glass-shadow);
       --gp-spring: cubic-bezier(0.2, 0, 0, 1.35);
     }
     body.gp-dark-mode {
       --gp-expressive: #a8c7fa !important;
-      --gp-expressive-container: rgba(18, 72, 152, 0.78) !important;
+      --gp-expressive-container: rgba(168, 199, 250, 0.12) !important;
       --gp-expressive-on-container: #d3e3fd !important;
-      --gp-secondary-container: rgba(92, 69, 123, 0.34) !important;
-      --gp-tertiary-container: rgba(45, 92, 62, 0.28) !important;
-      --gp-glass: rgba(24, 28, 36, 0.66) !important;
-      --gp-glass-strong: rgba(28, 32, 41, 0.82) !important;
-      --gp-glass-highlight: rgba(255, 255, 255, 0.14) !important;
-      --gp-glass-outline: rgba(255, 255, 255, 0.18) !important;
-      --gp-glass-shadow: rgba(0, 0, 0, 0.46) !important;
-      --gp-state-layer: rgba(168, 199, 250, 0.12) !important;
+      --gp-glass: rgba(28, 28, 30, 0.72) !important;
+      --gp-glass-highlight: rgba(255, 255, 255, 0.12) !important;
+      --gp-glass-outline: rgba(255, 255, 255, 0.14) !important;
+      --gp-glass-shadow: rgba(0, 0, 0, 0.28) !important;
+      --gp-state-layer: rgba(168, 199, 250, 0.1) !important;
     }
     .gp-hover-row,
     .gp-toolbar-btn,
@@ -867,8 +852,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       border-color: var(--gp-glass-outline);
       background: var(--gp-glass-surface);
       box-shadow: var(--gp-glass-elevation);
-      backdrop-filter: blur(28px) saturate(150%);
-      -webkit-backdrop-filter: blur(28px) saturate(150%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     .gp-hover-row {
       border-radius: 18px;
@@ -878,9 +863,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       border-radius: 24px;
       border-color: var(--gp-expressive);
       background: var(--gp-glass-hover);
-      box-shadow:
-        inset 0 1px 0 var(--gp-glass-highlight),
-        0 12px 30px color-mix(in srgb, var(--gp-expressive) 20%, transparent);
+      box-shadow: var(--gp-glass-elevation);
     }
     .gp-hover-row:active {
       border-radius: 12px;
@@ -931,10 +914,10 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
     .gpd-album-file-row {
       border: 1px solid var(--gp-glass-outline);
-      background: var(--gp-glass-surface);
-      box-shadow: inset 0 1px 0 var(--gp-glass-highlight);
-      backdrop-filter: blur(28px) saturate(150%);
-      -webkit-backdrop-filter: blur(28px) saturate(150%);
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
     }
     .gpd-album-file-row:hover {
       border-radius: 16px;
@@ -949,8 +932,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       border-radius: 20px;
       background: var(--gp-glass-surface);
       box-shadow: var(--gp-glass-elevation);
-      backdrop-filter: blur(28px) saturate(150%);
-      -webkit-backdrop-filter: blur(28px) saturate(150%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
   `;
   document.head.appendChild(style);

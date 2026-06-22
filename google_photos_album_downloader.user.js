@@ -464,51 +464,36 @@
         /* Material 3 Expressive + Pixel translucent surfaces */
         body {
             --gpd-expressive: #0b57d0;
-            --gpd-expressive-container: rgba(168, 199, 250, 0.78);
+            --gpd-expressive-container: rgba(11, 87, 208, 0.1);
             --gpd-expressive-on-container: #041e49;
-            --gpd-secondary-container: rgba(220, 198, 255, 0.34);
-            --gpd-tertiary-container: rgba(196, 238, 208, 0.28);
-            --gpd-glass: rgba(247, 249, 255, 0.68);
-            --gpd-glass-strong: rgba(247, 249, 255, 0.82);
-            --gpd-glass-highlight: rgba(255, 255, 255, 0.76);
-            --gpd-glass-outline: rgba(255, 255, 255, 0.68);
-            --gpd-glass-shadow: rgba(45, 55, 72, 0.2);
-            --gpd-state-layer: rgba(11, 87, 208, 0.1);
-            --gpd-glass-surface:
-                radial-gradient(circle at 12% 0%, var(--gpd-glass-highlight), transparent 44%),
-                linear-gradient(145deg, var(--gpd-secondary-container), transparent 64%),
-                var(--gpd-glass);
-            --gpd-glass-hover:
-                radial-gradient(circle at 12% 0%, var(--gpd-glass-highlight), transparent 44%),
-                color-mix(in srgb, var(--gpd-glass) 86%, var(--gpd-expressive-container));
-            --gpd-glass-primary:
-                radial-gradient(circle at 12% 0%, var(--gpd-glass-highlight), transparent 44%),
-                var(--gpd-expressive-container);
-            --gpd-glass-elevation:
-                inset 0 1px 0 var(--gpd-glass-highlight),
-                0 12px 32px var(--gpd-glass-shadow);
+            --gpd-glass: rgba(255, 255, 255, 0.72);
+            --gpd-glass-highlight: rgba(255, 255, 255, 0.72);
+            --gpd-glass-outline: rgba(60, 64, 67, 0.16);
+            --gpd-glass-shadow: rgba(32, 33, 36, 0.14);
+            --gpd-state-layer: rgba(11, 87, 208, 0.08);
+            --gpd-glass-surface: var(--gpd-glass);
+            --gpd-glass-hover: color-mix(in srgb, var(--gpd-glass) 92%, var(--gpd-expressive));
+            --gpd-glass-primary: color-mix(in srgb, var(--gpd-glass) 88%, var(--gpd-expressive));
+            --gpd-glass-elevation: 0 6px 20px var(--gpd-glass-shadow);
             --gpd-spring: cubic-bezier(0.2, 0, 0, 1.35);
         }
         body.gp-dark-mode {
             --gpd-expressive: #a8c7fa !important;
-            --gpd-expressive-container: rgba(18, 72, 152, 0.78) !important;
+            --gpd-expressive-container: rgba(168, 199, 250, 0.12) !important;
             --gpd-expressive-on-container: #d3e3fd !important;
-            --gpd-secondary-container: rgba(92, 69, 123, 0.34) !important;
-            --gpd-tertiary-container: rgba(45, 92, 62, 0.28) !important;
-            --gpd-glass: rgba(24, 28, 36, 0.66) !important;
-            --gpd-glass-strong: rgba(28, 32, 41, 0.82) !important;
-            --gpd-glass-highlight: rgba(255, 255, 255, 0.14) !important;
-            --gpd-glass-outline: rgba(255, 255, 255, 0.18) !important;
-            --gpd-glass-shadow: rgba(0, 0, 0, 0.46) !important;
-            --gpd-state-layer: rgba(168, 199, 250, 0.12) !important;
+            --gpd-glass: rgba(28, 28, 30, 0.72) !important;
+            --gpd-glass-highlight: rgba(255, 255, 255, 0.12) !important;
+            --gpd-glass-outline: rgba(255, 255, 255, 0.14) !important;
+            --gpd-glass-shadow: rgba(0, 0, 0, 0.28) !important;
+            --gpd-state-layer: rgba(168, 199, 250, 0.1) !important;
         }
         #gpd-trigger-btn {
             border-radius: 18px;
             border-color: var(--gpd-glass-outline);
             background: var(--gpd-glass-surface);
             box-shadow: var(--gpd-glass-elevation);
-            backdrop-filter: blur(28px) saturate(150%);
-            -webkit-backdrop-filter: blur(28px) saturate(150%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             transition:
                 border-radius 260ms var(--gpd-spring),
                 transform 260ms var(--gpd-spring),
@@ -520,9 +505,7 @@
             border-radius: 24px;
             color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-primary);
-            box-shadow:
-                inset 0 1px 0 var(--gpd-glass-highlight),
-                0 12px 30px color-mix(in srgb, var(--gpd-expressive) 22%, transparent);
+            box-shadow: var(--gpd-glass-elevation);
         }
         #gpd-trigger-btn:active {
             border-radius: 14px;
@@ -535,8 +518,8 @@
             border-color: var(--gpd-glass-outline);
             background: var(--gpd-glass-surface);
             box-shadow: var(--gpd-glass-elevation);
-            backdrop-filter: blur(28px) saturate(150%);
-            -webkit-backdrop-filter: blur(28px) saturate(150%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
         body.gp-dark-mode #gpd-panel {
             box-shadow: var(--gpd-glass-elevation);
@@ -545,14 +528,12 @@
             border-radius: 18px;
             color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-primary);
-            box-shadow: inset 0 1px 0 var(--gpd-glass-highlight);
+            box-shadow: none;
         }
         .gpd-close-btn {
             border: 1px solid var(--gpd-glass-outline);
-            background: var(--gpd-glass-surface);
-            box-shadow: var(--gpd-glass-elevation);
-            backdrop-filter: blur(28px) saturate(150%);
-            -webkit-backdrop-filter: blur(28px) saturate(150%);
+            background: transparent;
+            box-shadow: none;
         }
         .gpd-close-btn:hover {
             color: var(--gpd-expressive-on-container);
@@ -561,18 +542,14 @@
         .gpd-status-card {
             border-radius: 20px;
             border-color: var(--gpd-glass-outline);
-            background: var(--gpd-glass-surface);
-            box-shadow: var(--gpd-glass-elevation);
-            backdrop-filter: blur(28px) saturate(150%);
-            -webkit-backdrop-filter: blur(28px) saturate(150%);
+            background: rgba(127, 127, 127, 0.06);
+            box-shadow: none;
         }
         .gpd-action-btn {
             border-radius: 16px;
             border-color: var(--gpd-glass-outline);
-            background: var(--gpd-glass-surface);
-            box-shadow: var(--gpd-glass-elevation);
-            backdrop-filter: blur(28px) saturate(150%);
-            -webkit-backdrop-filter: blur(28px) saturate(150%);
+            background: transparent;
+            box-shadow: none;
             transition:
                 border-radius 260ms var(--gpd-spring),
                 transform 260ms var(--gpd-spring),
@@ -590,9 +567,9 @@
         }
         .gpd-action-btn-primary {
             color: var(--gpd-expressive-on-container) !important;
-            border-color: transparent;
+            border-color: color-mix(in srgb, var(--gpd-expressive) 22%, transparent);
             background: var(--gpd-glass-primary);
-            box-shadow: var(--gpd-glass-elevation);
+            box-shadow: none;
         }
         .gpd-action-btn-primary:hover:not(:disabled) {
             color: var(--gpd-expressive-on-container) !important;
@@ -600,12 +577,12 @@
         }
         .gpd-progress-fill {
             background: var(--gpd-expressive);
-            box-shadow: 0 0 10px color-mix(in srgb, var(--gpd-expressive) 55%, transparent);
+            box-shadow: none;
         }
         .gpd-progress-bar {
             border: 1px solid var(--gpd-glass-outline);
-            background: var(--gpd-glass-surface);
-            box-shadow: inset 0 1px 0 var(--gpd-glass-highlight);
+            background: rgba(127, 127, 127, 0.08);
+            box-shadow: none;
         }
     `;
     document.head.appendChild(style);
