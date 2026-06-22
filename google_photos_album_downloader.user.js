@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.8.7
+// @version      3.8.8
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -25,7 +25,7 @@
         return;
     }
 
-    console.log('[GP Downloader] Userscript 3.8.7 injected.');
+    console.log('[GP Downloader] Userscript 3.8.8 injected.');
 
     // Material Design SVG Paths
     const PATH_DOWNLOAD = "M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z";
@@ -327,7 +327,8 @@
             align-items: center;
             gap: 12px;
         }
-        .gpd-brand-mark {
+        .gpd-brand-mark,
+        .gpd-close-btn {
             width: 40px;
             height: 40px;
             flex: 0 0 40px;
@@ -343,11 +344,13 @@
             padding: 0;
             transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
         }
-        .gpd-brand-mark:hover {
+        .gpd-brand-mark:hover,
+        .gpd-close-btn:hover {
             background: var(--gpd-surface-container);
             color: var(--gpd-text);
         }
-        .gpd-brand-mark:active {
+        .gpd-brand-mark:active,
+        .gpd-close-btn:active {
             transform: scale(0.95);
         }
         .gpd-heading-group {
@@ -367,23 +370,6 @@
             color: var(--gpd-text-secondary);
             font-size: 12px;
             line-height: 1.4;
-        }
-        .gpd-close-btn {
-            width: 40px;
-            height: 40px;
-            flex: 0 0 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 0;
-            border-radius: 50%;
-            background: transparent;
-            color: var(--gpd-text-secondary);
-            cursor: pointer;
-        }
-        .gpd-close-btn:hover {
-            background: var(--gpd-surface-container);
-            color: var(--gpd-text);
         }
         .gpd-actions {
             display: grid;
@@ -544,34 +530,22 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
         }
-        .gpd-brand-mark {
+        .gpd-brand-mark,
+        .gpd-close-btn {
             border-radius: 14px;
             color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-primary);
             box-shadow: none;
+            border: none;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
         }
-        .gpd-brand-mark:hover {
-            background: var(--gpd-glass-hover);
-        }
-        .gpd-close-btn {
-            border-radius: 14px;
-            border: 1px solid var(--gpd-glass-outline);
-            background: transparent;
-            box-shadow: none;
-            transition:
-                border-radius 180ms var(--gpd-shape-motion),
-                background-color 160ms ease,
-                color 160ms ease,
-                border-color 160ms ease;
-        }
+        .gpd-brand-mark:hover,
         .gpd-close-btn:hover {
-            border-radius: 14px;
-            color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-hover);
         }
+        .gpd-brand-mark:active,
         .gpd-close-btn:active {
-            border-radius: 999px;
-            transform: none;
+            transform: scale(0.95);
         }
         .gpd-action-btn {
             border-radius: 18px;
@@ -950,7 +924,7 @@
         copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'gpd-action-btn';
-        setButtonContent(copyBtn, PATH_LINK, 'Download files');
+        setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
         copyBtn.dataset.mode = 'fetch';
         actions.appendChild(copyBtn);
 
@@ -1094,7 +1068,7 @@
                 setProgress(0, 100);
                 if (copyBtn) {
                     copyBtn.disabled = false;
-                    setButtonContent(copyBtn, PATH_LINK, 'Download files');
+                    setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
                     copyBtn.dataset.mode = 'fetch';
                 }
                 if (downloadAllBtn) {
@@ -1452,7 +1426,7 @@
         setProgress(0, 100);
         if (copyBtn) {
             copyBtn.disabled = false;
-            setButtonContent(copyBtn, PATH_LINK, 'Download files');
+            setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
             copyBtn.dataset.mode = 'fetch';
         }
         if (downloadAllBtn) {
