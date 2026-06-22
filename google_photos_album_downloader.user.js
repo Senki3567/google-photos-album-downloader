@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.2
+// @version      3.5
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -22,6 +22,7 @@
 
     // Material Design SVG Paths
     const PATH_DOWNLOAD = "M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z";
+    const PATH_DOWNLOAD_OUTLINE = "M12 3v12m0 0 4-4m-4 4-4-4M5 18v2h14v-2";
     const PATH_LINK = "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7a5 5 0 0 0 0 10h4v-1.9H7A3.1 3.1 0 0 1 3.9 12zM8 13h8v-2H8v2zm9-6h-4v1.9h4a3.1 3.1 0 1 1 0 6.2h-4V17h4a5 5 0 0 0 0-10z";
     const PATH_COPY = "M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z";
     const PATH_CHECK = "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
@@ -41,6 +42,16 @@
         path.setAttribute("d", pathD);
         svg.appendChild(path);
         
+        return svg;
+    }
+
+    function createDownloadIcon(size = 20) {
+        const svg = createSvgIcon(PATH_DOWNLOAD_OUTLINE, size);
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('stroke-width', '2');
+        svg.setAttribute('stroke-linecap', 'round');
+        svg.setAttribute('stroke-linejoin', 'round');
         return svg;
     }
 
@@ -213,59 +224,60 @@
 
         /* Material 3 refinement layer */
         body {
-            --gpd-panel-bg: rgba(255, 255, 255, 0.96);
-            --gpd-panel-border: #c4c7c5;
-            --gpd-text: #1f1f1f;
+            --gpd-panel-bg: rgba(248, 249, 250, 0.86);
+            --gpd-panel-border: rgba(60, 64, 67, 0.24);
+            --gpd-text: #202124;
             --gpd-text-secondary: #5f6368;
             --gpd-btn-bg: transparent;
-            --gpd-btn-hover: #d3e3fd;
-            --gpd-btn-trigger-hover: #d3e3fd;
-            --gpd-btn-text: #0b57d0;
-            --gpd-btn-primary-bg: #0b57d0;
+            --gpd-btn-hover: rgba(60, 64, 67, 0.1);
+            --gpd-btn-trigger-hover: rgba(60, 64, 67, 0.12);
+            --gpd-btn-text: #3c4043;
+            --gpd-btn-primary-bg: #3c4043;
             --gpd-btn-primary-text: #ffffff;
-            --gpd-btn-primary-hover: #0842a0;
-            --gpd-progress-bg: #e8eaed;
-            --gpd-accent: #0b57d0;
-            --gpd-primary-container: #d3e3fd;
-            --gpd-on-primary-container: #041e49;
-            --gpd-surface-container: #f1f3f4;
-            --gpd-surface-container-high: #e8eaed;
+            --gpd-btn-primary-hover: #202124;
+            --gpd-progress-bg: rgba(60, 64, 67, 0.14);
+            --gpd-accent: #5f6368;
+            --gpd-primary-container: rgba(60, 64, 67, 0.14);
+            --gpd-on-primary-container: #202124;
+            --gpd-surface-container: rgba(255, 255, 255, 0.42);
+            --gpd-surface-container-high: rgba(60, 64, 67, 0.14);
             --gpd-success: #137333;
             --gpd-error: #b3261e;
-            --gpd-focus: #0b57d0;
-            --gpd-shadow: 0 8px 28px rgba(60, 64, 67, 0.22), 0 2px 8px rgba(60, 64, 67, 0.14);
+            --gpd-focus: #5f6368;
+            --gpd-shadow: 0 8px 24px rgba(32, 33, 36, 0.18), 0 1px 4px rgba(32, 33, 36, 0.12);
         }
         body.gp-dark-mode {
-            --gpd-panel-bg: rgba(32, 33, 36, 0.97) !important;
-            --gpd-panel-border: #5f6368 !important;
-            --gpd-text: #e8eaed !important;
+            --gpd-panel-bg: rgba(24, 25, 28, 0.8) !important;
+            --gpd-panel-border: rgba(232, 234, 237, 0.22) !important;
+            --gpd-text: #f1f3f4 !important;
             --gpd-text-secondary: #bdc1c6 !important;
             --gpd-btn-bg: transparent !important;
-            --gpd-btn-hover: #0842a0 !important;
-            --gpd-btn-trigger-hover: #0842a0 !important;
-            --gpd-btn-text: #a8c7fa !important;
-            --gpd-btn-primary-bg: #a8c7fa !important;
-            --gpd-btn-primary-text: #062e6f !important;
-            --gpd-btn-primary-hover: #d3e3fd !important;
-            --gpd-progress-bg: #3c4043 !important;
-            --gpd-accent: #a8c7fa !important;
-            --gpd-primary-container: #0842a0 !important;
-            --gpd-on-primary-container: #d3e3fd !important;
-            --gpd-surface-container: #292a2d !important;
-            --gpd-surface-container-high: #3c4043 !important;
+            --gpd-btn-hover: rgba(232, 234, 237, 0.12) !important;
+            --gpd-btn-trigger-hover: rgba(232, 234, 237, 0.14) !important;
+            --gpd-btn-text: #e8eaed !important;
+            --gpd-btn-primary-bg: #e8eaed !important;
+            --gpd-btn-primary-text: #202124 !important;
+            --gpd-btn-primary-hover: #ffffff !important;
+            --gpd-progress-bg: rgba(255, 255, 255, 0.14) !important;
+            --gpd-accent: #bdc1c6 !important;
+            --gpd-primary-container: rgba(255, 255, 255, 0.14) !important;
+            --gpd-on-primary-container: #ffffff !important;
+            --gpd-surface-container: rgba(255, 255, 255, 0.08) !important;
+            --gpd-surface-container-high: rgba(255, 255, 255, 0.14) !important;
             --gpd-success: #81c995 !important;
             --gpd-error: #f2b8b5 !important;
-            --gpd-focus: #a8c7fa !important;
-            --gpd-shadow: 0 10px 32px rgba(0, 0, 0, 0.46), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+            --gpd-focus: #e8eaed !important;
+            --gpd-shadow: 0 10px 28px rgba(0, 0, 0, 0.38), 0 1px 5px rgba(0, 0, 0, 0.28) !important;
         }
         #gpd-trigger-btn {
             width: 48px;
             height: 48px;
+            border-radius: 16px;
             color: var(--gpd-btn-text);
             border-color: var(--gpd-panel-border);
             background: var(--gpd-panel-bg);
-            backdrop-filter: blur(16px) saturate(135%);
-            -webkit-backdrop-filter: blur(16px) saturate(135%);
+            backdrop-filter: blur(18px) saturate(110%);
+            -webkit-backdrop-filter: blur(18px) saturate(110%);
             transition: background-color 180ms ease, box-shadow 180ms ease, opacity 160ms ease;
             touch-action: manipulation;
         }
@@ -291,8 +303,8 @@
             border-radius: 20px;
             border-color: var(--gpd-panel-border);
             background: var(--gpd-panel-bg);
-            backdrop-filter: blur(18px) saturate(135%);
-            -webkit-backdrop-filter: blur(18px) saturate(135%);
+            backdrop-filter: blur(20px) saturate(110%);
+            -webkit-backdrop-filter: blur(20px) saturate(110%);
             transform: translateY(10px);
             visibility: hidden;
             transition: opacity 180ms ease, transform 220ms cubic-bezier(0.2, 0, 0, 1), visibility 0s linear 220ms;
@@ -355,9 +367,10 @@
         .gpd-status-card {
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            padding: 12px;
-            border-radius: 14px;
+            gap: 4px;
+            padding: 11px 12px;
+            border-radius: 16px;
+            border: 1px solid color-mix(in srgb, var(--gpd-panel-border) 70%, transparent);
             background: var(--gpd-surface-container);
         }
         .gpd-status-text {
@@ -385,7 +398,7 @@
         .gpd-action-btn {
             min-height: 44px;
             padding: 9px 14px;
-            border-radius: 22px;
+            border-radius: 14px;
             border-color: var(--gpd-panel-border);
             color: var(--gpd-btn-text);
             font-family: inherit;
@@ -398,6 +411,9 @@
         }
         .gpd-action-btn:hover:not(:disabled) {
             border-color: var(--gpd-btn-text);
+        }
+        .gpd-action-btn:active:not(:disabled) {
+            background: var(--gpd-surface-container-high);
         }
         .gpd-action-btn:disabled {
             opacity: 0.42;
@@ -461,7 +477,8 @@
         const labelNode = document.createElement('span');
         labelNode.className = 'gpd-action-label';
         labelNode.textContent = label;
-        button.replaceChildren(createSvgIcon(iconPath, 18), labelNode);
+        const icon = iconPath === PATH_DOWNLOAD ? createDownloadIcon(18) : createSvgIcon(iconPath, 18);
+        button.replaceChildren(icon, labelNode);
     }
 
     function setButtonLabel(button, label) {
@@ -474,7 +491,11 @@
             statusText.textContent = message;
             statusText.dataset.tone = tone;
         }
-        if (summaryText && detail !== undefined) summaryText.textContent = detail;
+        if (summaryText) {
+            const hasDetail = Boolean(detail);
+            summaryText.textContent = hasDetail ? detail : '';
+            summaryText.style.display = hasDetail ? 'block' : 'none';
+        }
     }
 
     function setProgress(value, tone = 'primary') {
@@ -497,7 +518,7 @@
         panelTrigger.setAttribute('aria-label', 'Open album download tools');
         panelTrigger.setAttribute('aria-controls', 'gpd-panel');
         panelTrigger.setAttribute('aria-expanded', 'false');
-        panelTrigger.replaceChildren(createSvgIcon(PATH_DOWNLOAD));
+        panelTrigger.replaceChildren(createDownloadIcon());
         document.body.appendChild(panelTrigger);
 
         // 2. Create Panel
@@ -512,7 +533,7 @@
 
         const brandMark = document.createElement('div');
         brandMark.className = 'gpd-brand-mark';
-        brandMark.appendChild(createSvgIcon(PATH_DOWNLOAD, 21));
+        brandMark.appendChild(createDownloadIcon(21));
 
         const headingGroup = document.createElement('div');
         headingGroup.className = 'gpd-heading-group';
@@ -521,11 +542,7 @@
         title.className = 'gpd-title';
         title.textContent = 'Album downloader';
 
-        const subtitle = document.createElement('p');
-        subtitle.className = 'gpd-subtitle';
-        subtitle.textContent = 'Original-quality album links';
-
-        headingGroup.append(title, subtitle);
+        headingGroup.appendChild(title);
 
         panelClose = document.createElement('button');
         panelClose.type = 'button';
@@ -544,11 +561,12 @@
         statusText.className = 'gpd-status-text';
         statusText.setAttribute('role', 'status');
         statusText.setAttribute('aria-live', 'polite');
-        statusText.textContent = 'Ready to fetch album links';
+        statusText.textContent = 'Ready';
 
         summaryText = document.createElement('div');
         summaryText.className = 'gpd-summary-text';
-        summaryText.textContent = 'Fetch links first, then copy or download them.';
+        summaryText.textContent = '';
+        summaryText.style.display = 'none';
 
         statusCard.append(statusText, summaryText);
         panel.appendChild(statusCard);
@@ -574,20 +592,20 @@
         scanBtn = document.createElement('button');
         scanBtn.type = 'button';
         scanBtn.className = 'gpd-action-btn gpd-action-btn-primary gpd-action-btn--wide';
-        setButtonContent(scanBtn, PATH_LINK, 'Fetch download links');
+        setButtonContent(scanBtn, PATH_LINK, 'Fetch links');
         actions.appendChild(scanBtn);
 
         copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'gpd-action-btn';
-        setButtonContent(copyBtn, PATH_COPY, 'Copy links');
+        setButtonContent(copyBtn, PATH_COPY, 'Copy');
         copyBtn.disabled = true;
         actions.appendChild(copyBtn);
 
         downloadAllBtn = document.createElement('button');
         downloadAllBtn.type = 'button';
         downloadAllBtn.className = 'gpd-action-btn';
-        setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
+        setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download');
         downloadAllBtn.disabled = true;
         actions.appendChild(downloadAllBtn);
 
@@ -718,18 +736,18 @@
                 lastAlbumKey = albumMediaKey;
                 fetchedItems = [];
                 setProgress(0);
-                setPanelStatus('Ready to fetch album links', 'Fetch links first, then copy or download them.');
+                setPanelStatus('Ready', '');
                 if (scanBtn) {
                     scanBtn.disabled = false;
-                    setButtonContent(scanBtn, PATH_LINK, 'Fetch download links');
+                    setButtonContent(scanBtn, PATH_LINK, 'Fetch links');
                 }
                 if (copyBtn) {
                     copyBtn.disabled = true;
-                    setButtonContent(copyBtn, PATH_COPY, 'Copy links');
+                    setButtonContent(copyBtn, PATH_COPY, 'Copy');
                 }
                 if (downloadAllBtn) {
                     downloadAllBtn.disabled = true;
-                    setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
+                    setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download');
                 }
             }
         } else {
@@ -828,7 +846,7 @@
     async function resolveAllDownloadUrls() {
         const total = fetchedItems.length;
         setButtonLabel(scanBtn, `Resolving 0/${total}`);
-        setPanelStatus('Creating original-quality links', `0 of ${total} items processed.`);
+        setPanelStatus(`Resolving links · 0/${total}`, '');
         setProgress(0);
 
         let completed = 0;
@@ -851,7 +869,7 @@
                         const percent = Math.round((completed / total) * 100);
                         setProgress(percent);
                         setButtonLabel(scanBtn, `Resolving ${completed}/${total}`);
-                        setPanelStatus('Creating original-quality links', `${completed} of ${total} items processed.`);
+                        setPanelStatus(`Resolving links · ${completed}/${total}`, '');
                         if (completed === total) resolve();
                         continue;
                     }
@@ -867,7 +885,7 @@
                             const percent = Math.round((completed / total) * 100);
                             setProgress(percent);
                             setButtonLabel(scanBtn, `Resolving ${completed}/${total}`);
-                            setPanelStatus('Creating original-quality links', `${completed} of ${total} items processed.`);
+                            setPanelStatus(`Resolving links · ${completed}/${total}`, '');
                             if (completed === total) {
                                 resolve();
                             } else {
@@ -891,7 +909,7 @@
         
         scanBtn.setAttribute('aria-busy', 'true');
         setButtonLabel(scanBtn, 'Scanning album');
-        setPanelStatus('Scanning this album', 'Looking for photos and videos…');
+        setPanelStatus('Scanning album…', '');
         setProgress(0);
 
         try {
@@ -916,7 +934,7 @@
             const total = albumItems.length;
             if (total === 0) {
                 setButtonLabel(scanBtn, 'Try again');
-                setPanelStatus('No items were found', 'Open the album again, then retry.', 'error');
+                setPanelStatus('No items found', 'Open the album again and retry.', 'error');
                 setProgress(100, 'error');
                 isWorking = false;
                 scanBtn.disabled = false;
@@ -936,17 +954,17 @@
             const failedCount = total - urls.length;
             if (urls.length === 0) {
                 setButtonLabel(scanBtn, 'Try again');
-                setPanelStatus('Could not create download links', 'Refresh Google Photos and try again.', 'error');
+                setPanelStatus('Could not fetch links', 'Refresh Google Photos and retry.', 'error');
                 setProgress(100, 'error');
                 copyBtn.disabled = true;
                 downloadAllBtn.disabled = true;
             } else if (failedCount > 0) {
                 setButtonLabel(scanBtn, `Retry ${failedCount} missing`);
-                setButtonLabel(copyBtn, `Copy ${urls.length} links`);
+                setButtonLabel(copyBtn, `Copy ${urls.length}`);
                 setButtonLabel(downloadAllBtn, `Download ${urls.length}`);
                 setPanelStatus(
-                    'Some links could not be created',
-                    `${urls.length} of ${total} links are ready. Retry to fetch the remaining ${failedCount}.`,
+                    `${urls.length}/${total} links ready`,
+                    `Retry ${failedCount} missing link${failedCount === 1 ? '' : 's'}.`,
                     'error'
                 );
                 setProgress(Math.round((urls.length / total) * 100), 'error');
@@ -954,9 +972,9 @@
                 downloadAllBtn.disabled = false;
             } else {
                 setButtonLabel(scanBtn, 'Refresh links');
-                setButtonLabel(copyBtn, 'Copy links');
-                setButtonLabel(downloadAllBtn, 'Download all');
-                setPanelStatus('Links are ready', `${urls.length} original-quality links available.`, 'success');
+                setButtonLabel(copyBtn, 'Copy');
+                setButtonLabel(downloadAllBtn, 'Download');
+                setPanelStatus(`${urls.length} links ready`, '', 'success');
                 setProgress(100, 'success');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
@@ -964,7 +982,7 @@
         } catch (error) {
             console.error('Fetch error:', error);
             setButtonLabel(scanBtn, 'Try again');
-            setPanelStatus('Album scan failed', 'Refresh Google Photos and try again.', 'error');
+            setPanelStatus('Scan failed', 'Refresh Google Photos and retry.', 'error');
             setProgress(100, 'error');
         } finally {
             isWorking = false;
@@ -984,17 +1002,17 @@
         try {
             await navigator.clipboard.writeText(urls.join('\n'));
             setButtonContent(copyBtn, PATH_CHECK, 'Copied');
-            setPanelStatus('Links copied', `${urls.length} links are now on your clipboard.`, 'success');
+            setPanelStatus(`${urls.length} links copied`, '', 'success');
             
             setTimeout(() => {
-                setButtonContent(copyBtn, PATH_COPY, 'Copy links');
+                setButtonContent(copyBtn, PATH_COPY, 'Copy');
             }, 3000);
 
         } catch (error) {
             console.error('Copy error:', error);
             setButtonLabel(copyBtn, 'Copy failed');
-            setPanelStatus('Could not copy links', 'Allow clipboard access, then try again.', 'error');
-            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, 'Copy links'), 2500);
+            setPanelStatus('Copy failed', 'Allow clipboard access and retry.', 'error');
+            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, 'Copy'), 2500);
         }
     }
 
@@ -1013,7 +1031,7 @@
 
         downloadAllBtn.setAttribute('aria-busy', 'true');
         setButtonLabel(downloadAllBtn, `Downloading 0/${urls.length}`);
-        setPanelStatus('Downloading album', 'Your browser may ask to allow multiple downloads.');
+        setPanelStatus(`Downloading · 0/${urls.length}`, '');
         setProgress(0);
 
         try {
@@ -1021,24 +1039,24 @@
                 setButtonLabel(downloadAllBtn, `Downloading ${i + 1}/${urls.length}`);
                 const percent = Math.round(((i + 1) / urls.length) * 100);
                 setProgress(percent);
-                setPanelStatus('Downloading album', `${i + 1} of ${urls.length} downloads started.`);
+                setPanelStatus(`Downloading · ${i + 1}/${urls.length}`, '');
                 
                 await triggerSingleDownload(urls[i]);
                 await new Promise(r => setTimeout(r, 500));
             }
 
-            setButtonContent(downloadAllBtn, PATH_CHECK, 'Downloads started');
-            setPanelStatus('Album download started', `${urls.length} items were sent to your browser.`, 'success');
+            setButtonContent(downloadAllBtn, PATH_CHECK, 'Started');
+            setPanelStatus(`${urls.length} downloads started`, '', 'success');
             setProgress(100, 'success');
             
             setTimeout(() => {
-                setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
+                setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download');
             }, 4000);
 
         } catch (error) {
             console.error('Download all error:', error);
             setButtonLabel(downloadAllBtn, 'Download failed');
-            setPanelStatus('Download was interrupted', 'Allow multiple downloads, then try again.', 'error');
+            setPanelStatus('Download interrupted', 'Allow multiple downloads and retry.', 'error');
             setProgress(100, 'error');
         } finally {
             isWorking = false;

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.4.0
+// @version      1.5.1
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -85,7 +85,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
   const albumCache = new Map();
   const SVG_LINK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>';
   const SVG_CHECK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-  const SVG_DOWNLOAD = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>';
+  const SVG_DOWNLOAD = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 18v2h14v-2"/></svg>';
   const SVG_ADD_ALBUM = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" focusable="false"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>';
   const filenameCache = new Map();
   const albumDetailsCache = new Map(); // mediaKey -> { count, size, isLoading }
@@ -553,36 +553,40 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
 
     /* Google Photos-native Material 3 refinement layer */
     body {
-      --gp-card-bg: rgba(255, 255, 255, 0.96);
-      --gp-card-text: #1f1f1f;
-      --gp-card-border: #c4c7c5;
-      --gp-row-hover: #e8f0fe;
+      --gp-card-bg: rgba(248, 249, 250, 0.86);
+      --gp-card-text: #202124;
+      --gp-card-border: rgba(60, 64, 67, 0.24);
+      --gp-row-hover: rgba(60, 64, 67, 0.1);
       --gp-text-secondary: #5f6368;
-      --gp-surface-container: #f1f3f4;
-      --gp-surface-container-high: #e8eaed;
-      --gp-primary: #0b57d0;
-      --gp-primary-container: #d3e3fd;
-      --gp-on-primary-container: #041e49;
+      --gp-surface-container: rgba(255, 255, 255, 0.42);
+      --gp-surface-container-high: rgba(60, 64, 67, 0.14);
+      --gp-primary: #3c4043;
+      --gp-primary-container: rgba(60, 64, 67, 0.14);
+      --gp-on-primary-container: #202124;
+      --gp-link-color: #3c4043;
+      --gp-link-hover: #202124;
       --gp-success: #137333;
       --gp-error: #b3261e;
-      --gp-focus: #0b57d0;
-      --gp-card-shadow: 0 8px 24px rgba(60, 64, 67, 0.22), 0 2px 6px rgba(60, 64, 67, 0.14);
+      --gp-focus: #5f6368;
+      --gp-card-shadow: 0 8px 24px rgba(32, 33, 36, 0.18), 0 1px 4px rgba(32, 33, 36, 0.12);
     }
     body.gp-dark-mode {
-      --gp-card-bg: rgba(32, 33, 36, 0.97) !important;
-      --gp-card-text: #e8eaed !important;
-      --gp-card-border: #5f6368 !important;
-      --gp-row-hover: #3c4043 !important;
+      --gp-card-bg: rgba(24, 25, 28, 0.8) !important;
+      --gp-card-text: #f1f3f4 !important;
+      --gp-card-border: rgba(232, 234, 237, 0.22) !important;
+      --gp-row-hover: rgba(232, 234, 237, 0.12) !important;
       --gp-text-secondary: #bdc1c6 !important;
-      --gp-surface-container: #292a2d !important;
-      --gp-surface-container-high: #3c4043 !important;
-      --gp-primary: #a8c7fa !important;
-      --gp-primary-container: #0842a0 !important;
-      --gp-on-primary-container: #d3e3fd !important;
+      --gp-surface-container: rgba(255, 255, 255, 0.08) !important;
+      --gp-surface-container-high: rgba(255, 255, 255, 0.14) !important;
+      --gp-primary: #e8eaed !important;
+      --gp-primary-container: rgba(255, 255, 255, 0.14) !important;
+      --gp-on-primary-container: #ffffff !important;
+      --gp-link-color: #e8eaed !important;
+      --gp-link-hover: #ffffff !important;
       --gp-success: #81c995 !important;
       --gp-error: #f2b8b5 !important;
-      --gp-focus: #a8c7fa !important;
-      --gp-card-shadow: 0 10px 28px rgba(0, 0, 0, 0.46), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+      --gp-focus: #e8eaed !important;
+      --gp-card-shadow: 0 10px 28px rgba(0, 0, 0, 0.38), 0 1px 5px rgba(0, 0, 0, 0.28) !important;
     }
     .gp-hover-card {
       left: 8px;
@@ -596,8 +600,14 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       color: var(--gp-card-text);
       font-size: 12px;
       box-shadow: var(--gp-card-shadow);
-      backdrop-filter: blur(16px) saturate(135%);
-      -webkit-backdrop-filter: blur(16px) saturate(135%);
+      backdrop-filter: blur(18px) saturate(110%);
+      -webkit-backdrop-filter: blur(18px) saturate(110%);
+    }
+    .gp-album-link {
+      color: var(--gp-link-color);
+    }
+    .gp-album-link:hover {
+      color: var(--gp-link-hover);
     }
     .gp-hover-row {
       width: 100%;
@@ -613,10 +623,15 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
     .gp-filename-row {
       background: var(--gp-surface-container);
+      border: 1px solid color-mix(in srgb, var(--gp-card-border) 70%, transparent);
     }
     .gp-hover-row:hover,
     .gp-hover-row:focus-visible {
       background: var(--gp-row-hover);
+    }
+    .gp-hover-row:active,
+    .gpd-album-file-row:active {
+      background: var(--gp-surface-container-high);
     }
     .gp-hover-row:focus-visible,
     .gp-toolbar-btn:focus-visible,
@@ -646,12 +661,17 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       color: var(--gp-primary);
       font: 600 12px/1.2 "Google Sans", Roboto, Arial, sans-serif;
       box-shadow: var(--gp-card-shadow);
+      backdrop-filter: blur(18px) saturate(110%);
+      -webkit-backdrop-filter: blur(18px) saturate(110%);
       touch-action: manipulation;
     }
     .gp-toolbar-btn:hover {
       background: var(--gp-primary-container);
       border-color: var(--gp-primary);
       color: var(--gp-on-primary-container);
+    }
+    .gp-toolbar-btn:active {
+      background: var(--gp-surface-container-high);
     }
     body.gp-dark-mode .gp-toolbar-btn,
     body.gp-dark-mode .gp-toolbar-btn:hover {
@@ -672,8 +692,14 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       width: auto;
       height: 44px;
       flex: 1 1 auto;
+      display: block;
       padding: 0 14px;
       border-radius: 22px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-align: left;
+      line-height: 42px;
     }
     .gpd-album-hover-details {
       top: 35%;
@@ -687,8 +713,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       color: var(--gp-card-text);
       font-size: 12px;
       box-shadow: var(--gp-card-shadow);
-      backdrop-filter: blur(16px) saturate(135%);
-      -webkit-backdrop-filter: blur(16px) saturate(135%);
+      backdrop-filter: blur(18px) saturate(110%);
+      -webkit-backdrop-filter: blur(18px) saturate(110%);
     }
     .gpd-album-summary {
       display: flex;
@@ -750,8 +776,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       opacity: 0;
       transform: translateY(8px);
       transition: opacity 180ms ease, transform 180ms ease;
-      backdrop-filter: blur(16px) saturate(135%);
-      -webkit-backdrop-filter: blur(16px) saturate(135%);
+      backdrop-filter: blur(18px) saturate(110%);
+      -webkit-backdrop-filter: blur(18px) saturate(110%);
     }
     #gp-toast[data-visible="true"] {
       opacity: 1;
@@ -1413,7 +1439,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       const itemDiv = document.createElement('button');
       itemDiv.type = 'button';
       itemDiv.className = 'gpd-album-file-row';
-      itemDiv.title = `Copy ${item.filename}`;
+      itemDiv.title = item.filename;
       itemDiv.setAttribute('aria-label', `Copy filename ${item.filename}`);
 
       const nameSpan = document.createElement('span');
