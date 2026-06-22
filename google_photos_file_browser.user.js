@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos File Browser
 // @namespace    https://github.com/Senki3567/google-photos-album-downloader
-// @version      1.0.0
+// @version      1.1.0
 // @description  Browse and manage Google Photos albums as folders and media as files in an integrated file-browser interface.
 // @author       Antigravity
 // @license      MIT
@@ -44,22 +44,25 @@ THE SOFTWARE.
   const RPC_TIMEOUT_MS = 15000;
   const RPC_MAX_ATTEMPTS = 3;
   const PAGE_SIZE = 100;
-  const META_CHUNK_SIZE = 100;
+  const META_CHUNK_SIZE = 50;
+  const OPERATION_CHUNK_SIZE = 500;
 
   const state = {
     open: false,
     busy: false,
     view: 'albums',
+    viewMode: 'grid',
+    generation: 0,
     currentAlbum: null,
     albums: [],
+    albumsNextPageId: null,
+    albumsFullyLoaded: false,
     items: [],
     filteredItems: [],
     selected: new Set(),
     nextPageId: null,
     query: '',
-    sort: 'newest',
-    metadata: new Map(),
-    themeTimer: 0
+    metadata: new Map()
   };
 
   const refs = {};
@@ -80,7 +83,10 @@ THE SOFTWARE.
     open: 'M14 3h7v7h-2V6.41l-9.29 9.3-1.42-1.42 9.3-9.29H14V3zM5 5h6V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6h-2v6H5V5z',
     check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
     search: 'M9.5 3a6.5 6.5 0 1 0 3.98 11.64L19.85 21 21 19.85l-6.36-6.37A6.5 6.5 0 0 0 9.5 3zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z',
-    upload: 'M5 20h14v-2H5v2zm7-17 5 5-1.41 1.41L13 6.83V16h-2V6.83L8.41 9.41 7 8l5-5z'
+    upload: 'M5 20h14v-2H5v2zm7-17 5 5-1.41 1.41L13 6.83V16h-2V6.83L8.41 9.41 7 8l5-5z',
+    grid: 'M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z',
+    list: 'M4 5h3v3H4V5zm5 0h11v3H9V5zM4 10.5h3v3H4v-3zm5 0h11v3H9v-3zM4 16h3v3H4v-3zm5 0h11v3H9v-3z',
+    restore: 'M7.5 5H3v4.5l1.75-1.75A8 8 0 1 1 4 14h2a6 6 0 1 0 .45-2.28L9 9.17V5H7.5z'
   };
 
   function svgIcon(name, size = 20) {
@@ -227,6 +233,13 @@ THE SOFTWARE.
     };
   }
 
+  function parseTrashPage(raw) {
+    return {
+      items: (raw?.[0] || []).map(parseMedia).filter(item => item.mediaKey),
+      nextPageId: raw?.[1] || null
+    };
+  }
+
   function parseBatchMetadata(raw) {
     const rows = raw?.[0]?.[1];
     if (!Array.isArray(rows)) return [];
@@ -237,18 +250,12 @@ THE SOFTWARE.
     })).filter(item => item.mediaKey);
   }
 
-  async function getAlbums() {
-    const albums = [];
-    let next = null;
-    const seen = new Set();
-    do {
-      const raw = await sendRpc('Z5xsfc', [next, null, null, null, 1, null, null, PAGE_SIZE, [2], 5]);
-      albums.push(...(raw?.[0] || []).map(parseAlbum).filter(album => album.mediaKey));
-      next = raw?.[1] || null;
-      if (next && seen.has(next)) break;
-      if (next) seen.add(next);
-    } while (next);
-    return albums;
+  async function getAlbumsPage(nextPageId = null) {
+    const raw = await sendRpc('Z5xsfc', [nextPageId, null, null, null, 1, null, null, PAGE_SIZE, [2], 5]);
+    return {
+      items: (raw?.[0] || []).map(parseAlbum).filter(album => album.mediaKey),
+      nextPageId: raw?.[1] || null
+    };
   }
 
   async function getLibraryPage(nextPageId = null) {
@@ -257,6 +264,10 @@ THE SOFTWARE.
 
   async function getFavoritesPage(nextPageId = null) {
     return parseGenericPage(await sendRpc('EzkLib', ['Favorites', [[5, '8', 0, 9]], nextPageId]));
+  }
+
+  async function getTrashPage(nextPageId = null) {
+    return parseTrashPage(await sendRpc('zy0IHe', [nextPageId]));
   }
 
   async function getAlbumPage(album, nextPageId = null) {
@@ -298,6 +309,21 @@ THE SOFTWARE.
 
   async function moveToTrash(dedupKeys) {
     return sendRpc('XwAOJf', [null, 1, dedupKeys, 3]);
+  }
+
+  async function restoreFromTrash(dedupKeys) {
+    return sendRpc('XwAOJf', [null, 3, dedupKeys, 2]);
+  }
+
+  async function setFavorite(dedupKeys, favorite) {
+    const mapped = dedupKeys.map(key => [null, key]);
+    return sendRpc('Ftfh0', [mapped, [favorite ? 1 : 2]]);
+  }
+
+  async function runInChunks(values, operation) {
+    for (let offset = 0; offset < values.length; offset += OPERATION_CHUNK_SIZE) {
+      await operation(values.slice(offset, offset + OPERATION_CHUNK_SIZE));
+    }
   }
 
   function injectStyle() {
@@ -425,14 +451,23 @@ THE SOFTWARE.
       .gpfb-button--primary { color: var(--gpfb-on-blue); border-color: color-mix(in srgb, var(--gpfb-blue) 28%, transparent); background: var(--gpfb-blue-soft); }
       .gpfb-content { min-height: 0; overflow-y: auto; padding: 6px 18px 24px; }
       .gpfb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+      .gpfb-grid[data-view="list"] { display: flex; flex-direction: column; gap: 7px; }
       .gpfb-card {
         position: relative; min-width: 0; overflow: hidden; border: 1px solid var(--gpfb-outline);
         border-radius: 20px; color: inherit; background: var(--gpfb-surface); cursor: pointer;
         transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+        content-visibility: auto; contain-intrinsic-size: 240px;
       }
       .gpfb-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--gpfb-blue) 48%, var(--gpfb-outline)); }
       .gpfb-card[data-selected="true"] { border-color: var(--gpfb-blue); background: var(--gpfb-blue-soft); }
+      .gpfb-grid[data-view="list"] .gpfb-card {
+        display: grid; grid-template-columns: 76px minmax(0, 1fr); min-height: 64px; border-radius: 16px;
+      }
+      .gpfb-grid[data-view="list"] .gpfb-card:hover { transform: none; }
       .gpfb-thumb { position: relative; aspect-ratio: 16/10; overflow: hidden; background: rgba(127,127,127,.1); }
+      .gpfb-grid[data-view="list"] .gpfb-thumb { width: 76px; height: 64px; aspect-ratio: auto; }
+      .gpfb-grid[data-view="list"] .gpfb-folder-thumb svg { width: 34px; height: 34px; }
+      .gpfb-grid[data-view="list"] .gpfb-card-info { min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 9px 12px; }
       .gpfb-thumb img { width: 100%; height: 100%; display: block; object-fit: cover; }
       .gpfb-folder-thumb { display: flex; align-items: center; justify-content: center; color: var(--gpfb-blue); }
       .gpfb-folder-thumb svg { width: 64px; height: 64px; opacity: .82; }
@@ -471,8 +506,12 @@ THE SOFTWARE.
       .gpfb-dialog p { margin: 0 0 14px; color: var(--gpfb-secondary); font-size: 13px; }
       .gpfb-dialog input, .gpfb-dialog select {
         width: 100%; height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--gpfb-outline);
-        border-radius: 14px; color: inherit; background: transparent; font: inherit;
+        border-radius: 14px; color: var(--gpfb-text); background: var(--gpfb-glass); font: inherit;
+        color-scheme: light;
       }
+      body.gpfb-dark .gpfb-dialog input, body.gpfb-dark .gpfb-dialog select { color-scheme: dark; }
+      .gpfb-dialog select option { color: #202124; background: #fff; }
+      body.gpfb-dark .gpfb-dialog select option { color: #f1f3f4; background: #202124; }
       .gpfb-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
       @keyframes gpfb-spin { to { transform: rotate(360deg); } }
       @media (max-width: 760px) {
@@ -537,7 +576,8 @@ THE SOFTWARE.
     refs.navAlbums = navButton('Albums', 'albums', 'albums');
     refs.navLibrary = navButton('Library', 'photo', 'library');
     refs.navFavorites = navButton('Favorites', 'favorite', 'favorites');
-    sidebar.append(refs.navAlbums, refs.navLibrary, refs.navFavorites);
+    refs.navTrash = navButton('Trash', 'trash', 'trash');
+    sidebar.append(refs.navAlbums, refs.navLibrary, refs.navFavorites, refs.navTrash);
 
     const main = document.createElement('main');
     main.className = 'gpfb-main';
@@ -636,6 +676,7 @@ THE SOFTWARE.
 
   async function navigate(view, album = null) {
     if (state.busy) return;
+    const generation = ++state.generation;
     state.view = view;
     state.currentAlbum = album;
     state.items = [];
@@ -648,21 +689,28 @@ THE SOFTWARE.
     setBusy(true, 'Loading…');
     try {
       if (view === 'albums') {
-        state.albums = await getAlbums();
+        const page = await getAlbumsPage();
+        if (generation !== state.generation) return;
+        state.albums = page.items;
+        state.albumsNextPageId = page.nextPageId;
+        state.albumsFullyLoaded = !page.nextPageId;
         state.items = state.albums;
       } else {
         const page = view === 'library'
           ? await getLibraryPage()
           : view === 'favorites'
             ? await getFavoritesPage()
-            : await getAlbumPage(album);
+            : view === 'trash'
+              ? await getTrashPage()
+              : await getAlbumPage(album);
+        if (generation !== state.generation) return;
         state.items = page.items;
         state.nextPageId = page.nextPageId;
-        await hydrateMetadata(state.items);
       }
       applyFilterAndSort();
       renderChrome();
       renderContent();
+      if (view !== 'albums') void hydrateMetadata(state.items, generation);
     } catch (error) {
       console.error('[GP File Browser] Navigation failed', error);
       renderEmpty('Could not load this location', error.message);
@@ -681,22 +729,49 @@ THE SOFTWARE.
     refs.navAlbums.dataset.active = String(state.view === 'albums' || state.view === 'album');
     refs.navLibrary.dataset.active = String(state.view === 'library');
     refs.navFavorites.dataset.active = String(state.view === 'favorites');
+    refs.navTrash.dataset.active = String(state.view === 'trash');
     refs.path.textContent = state.view === 'album'
       ? `Albums / ${state.currentAlbum?.title || 'Album'}`
-      : ({ albums: 'Albums', library: 'Library', favorites: 'Favorites' }[state.view] || 'Photos');
+      : ({ albums: 'Albums', library: 'Library', favorites: 'Favorites', trash: 'Trash' }[state.view] || 'Photos');
     renderToolbar();
     updateFooter();
   }
 
   function renderToolbar() {
     refs.toolbar.replaceChildren();
+    const gridView = button('', 'grid', 'gpfb-button--icon');
+    gridView.title = 'Grid view';
+    gridView.classList.toggle('gpfb-button--primary', state.viewMode === 'grid');
+    const listView = button('', 'list', 'gpfb-button--icon');
+    listView.title = 'List view';
+    listView.classList.toggle('gpfb-button--primary', state.viewMode === 'list');
+    gridView.addEventListener('click', () => setViewMode('grid'));
+    listView.addEventListener('click', () => setViewMode('list'));
+
     if (state.view === 'albums') {
       const create = button('New folder', 'folderAdd', 'gpfb-button--primary');
       create.addEventListener('click', showCreateAlbumDialog);
       const upload = button('Upload', 'upload');
       upload.addEventListener('click', triggerNativeUpload);
-      refs.toolbar.append(create, upload);
+      refs.toolbar.append(create, upload, gridView, listView);
       return;
+    }
+
+    if (state.view === 'trash') {
+      const restore = button('Restore', 'restore', 'gpfb-button--primary');
+      const allSelected = areAllVisibleSelected();
+      const selectAll = button(allSelected ? 'Deselect all' : 'Select all', allSelected ? 'close' : 'check');
+      restore.disabled = state.selected.size === 0;
+      restore.addEventListener('click', restoreSelected);
+      selectAll.addEventListener('click', selectAllVisible);
+      refs.toolbar.append(restore, selectAll, gridView, listView);
+      return;
+    }
+
+    if (state.view === 'album') {
+      const back = button('Albums', 'albums');
+      back.addEventListener('click', () => navigate('albums'));
+      refs.toolbar.appendChild(back);
     }
 
     const open = button('Open', 'open');
@@ -705,8 +780,10 @@ THE SOFTWARE.
     const add = button('Add to album', 'folderAdd');
     const move = button('Move', 'move');
     const remove = button('Remove from album', 'remove');
+    const favorite = button(state.view === 'favorites' ? 'Unfavorite' : 'Favorite', 'favorite');
     const trash = button('Trash', 'trash');
-    const selectAll = button('Select all', 'check');
+    const allSelected = areAllVisibleSelected();
+    const selectAll = button(allSelected ? 'Deselect all' : 'Select all', allSelected ? 'close' : 'check');
 
     open.addEventListener('click', openSelected);
     copy.addEventListener('click', copySelectedLinks);
@@ -714,14 +791,22 @@ THE SOFTWARE.
     add.addEventListener('click', () => showAlbumPicker('add'));
     move.addEventListener('click', () => showAlbumPicker('move'));
     remove.addEventListener('click', removeSelectedFromAlbum);
+    favorite.addEventListener('click', toggleFavoriteSelected);
     trash.addEventListener('click', trashSelected);
     selectAll.addEventListener('click', selectAllVisible);
 
     const hasSelection = state.selected.size > 0;
-    [open, copy, download, add, move, remove, trash].forEach(el => { el.disabled = !hasSelection; });
+    [open, copy, download, add, move, remove, favorite, trash].forEach(el => { el.disabled = !hasSelection; });
     move.hidden = state.view !== 'album';
     remove.hidden = state.view !== 'album';
-    refs.toolbar.append(open, copy, download, add, move, remove, trash, selectAll);
+    refs.toolbar.append(open, copy, download, add, move, remove, favorite, trash, selectAll, gridView, listView);
+  }
+
+  function setViewMode(mode) {
+    if (state.viewMode === mode) return;
+    state.viewMode = mode;
+    renderToolbar();
+    renderContent();
   }
 
   function applyFilterAndSort() {
@@ -739,17 +824,40 @@ THE SOFTWARE.
     state.filteredItems = items;
   }
 
-  async function hydrateMetadata(items) {
+  async function hydrateMetadata(items, generation = state.generation) {
     const missing = items.map(item => item.mediaKey).filter(key => !state.metadata.has(key));
     for (let offset = 0; offset < missing.length; offset += META_CHUNK_SIZE) {
+      if (generation !== state.generation) return;
       const chunk = missing.slice(offset, offset + META_CHUNK_SIZE);
       try {
         const metadata = await getMetadata(chunk);
         metadata.forEach(item => state.metadata.set(item.mediaKey, item));
+        if (generation !== state.generation) return;
+        if (state.query) {
+          applyFilterAndSort();
+          renderContent();
+        } else {
+          updateVisibleMetadata(metadata);
+        }
       } catch (error) {
         console.warn('[GP File Browser] Metadata batch failed', error);
       }
     }
+  }
+
+  function updateVisibleMetadata(metadata) {
+    metadata.forEach(item => {
+      const card = refs.content.querySelector(`.gpfb-card[data-key="${CSS.escape(item.mediaKey)}"]`);
+      if (!card) return;
+      const title = card.querySelector('.gpfb-card-title');
+      const meta = card.querySelector('.gpfb-card-meta');
+      const source = state.items.find(candidate => candidate.mediaKey === item.mediaKey);
+      if (title) {
+        title.textContent = item.filename || 'Photo or video';
+        title.title = title.textContent;
+      }
+      if (meta) meta.textContent = [formatDate(source?.timestamp), formatBytes(item.size)].filter(Boolean).join(' · ');
+    });
   }
 
   function renderContent() {
@@ -760,9 +868,11 @@ THE SOFTWARE.
     }
     const grid = document.createElement('div');
     grid.className = 'gpfb-grid';
+    grid.dataset.view = state.viewMode;
     state.filteredItems.forEach(item => grid.appendChild(item.kind === 'folder' ? folderCard(item) : fileCard(item)));
     refs.content.appendChild(grid);
-    if (state.nextPageId && !state.query) {
+    const hasNextPage = state.view === 'albums' ? state.albumsNextPageId : state.nextPageId;
+    if (hasNextPage && !state.query) {
       const loadWrap = document.createElement('div');
       loadWrap.className = 'gpfb-load';
       const load = button('Load more', 'refresh');
@@ -788,13 +898,15 @@ THE SOFTWARE.
   function folderCard(album) {
     const card = document.createElement('article');
     card.className = 'gpfb-card';
+    card.dataset.key = album.mediaKey;
     card.tabIndex = 0;
     const thumb = document.createElement('div');
     thumb.className = 'gpfb-thumb gpfb-folder-thumb';
     if (album.thumb) {
       const img = document.createElement('img');
       img.loading = 'lazy';
-      img.src = thumbnailUrl(album.thumb);
+      img.decoding = 'async';
+      img.src = thumbnailUrl(album.thumb, state.viewMode === 'list' ? 160 : 480, state.viewMode === 'list' ? 100 : 320);
       img.alt = '';
       thumb.appendChild(img);
     } else {
@@ -821,6 +933,7 @@ THE SOFTWARE.
   function fileCard(item) {
     const card = document.createElement('article');
     card.className = 'gpfb-card';
+    card.dataset.key = item.mediaKey;
     card.dataset.selected = String(state.selected.has(item.mediaKey));
     card.tabIndex = 0;
 
@@ -828,7 +941,8 @@ THE SOFTWARE.
     thumb.className = 'gpfb-thumb';
     const img = document.createElement('img');
     img.loading = 'lazy';
-    img.src = thumbnailUrl(item.thumb);
+    img.decoding = 'async';
+    img.src = thumbnailUrl(item.thumb, state.viewMode === 'list' ? 160 : 480, state.viewMode === 'list' ? 100 : 320);
     img.alt = '';
     thumb.appendChild(img);
     const select = document.createElement('span');
@@ -851,7 +965,7 @@ THE SOFTWARE.
 
     card.addEventListener('click', event => {
       event.preventDefault();
-      toggleSelection(item.mediaKey);
+      toggleSelection(item.mediaKey, card);
     });
     card.addEventListener('dblclick', event => {
       event.preventDefault();
@@ -863,15 +977,16 @@ THE SOFTWARE.
     return card;
   }
 
-  function toggleSelection(key) {
+  function toggleSelection(key, card = null) {
     if (state.selected.has(key)) state.selected.delete(key);
     else state.selected.add(key);
+    if (card) card.dataset.selected = String(state.selected.has(key));
     renderToolbar();
-    renderContent();
+    updateFooter();
   }
 
   function selectAllVisible() {
-    const allSelected = state.filteredItems.every(item => state.selected.has(item.mediaKey));
+    const allSelected = areAllVisibleSelected();
     state.filteredItems.forEach(item => {
       if (allSelected) state.selected.delete(item.mediaKey);
       else state.selected.add(item.mediaKey);
@@ -880,24 +995,41 @@ THE SOFTWARE.
     renderContent();
   }
 
+  function areAllVisibleSelected() {
+    return state.filteredItems.length > 0 && state.filteredItems.every(item => state.selected.has(item.mediaKey));
+  }
+
   function selectedItems() {
     return state.items.filter(item => state.selected.has(item.mediaKey));
   }
 
   async function loadMore() {
-    if (!state.nextPageId || state.busy) return;
+    const nextPageId = state.view === 'albums' ? state.albumsNextPageId : state.nextPageId;
+    if (!nextPageId || state.busy) return;
     setBusy(true, 'Loading more…');
     try {
+      if (state.view === 'albums') {
+        const page = await getAlbumsPage(nextPageId);
+        state.albums.push(...page.items);
+        state.albumsNextPageId = page.nextPageId;
+        state.albumsFullyLoaded = !page.nextPageId;
+        state.items = state.albums;
+        applyFilterAndSort();
+        renderContent();
+        return;
+      }
       const page = state.view === 'library'
         ? await getLibraryPage(state.nextPageId)
         : state.view === 'favorites'
           ? await getFavoritesPage(state.nextPageId)
-          : await getAlbumPage(state.currentAlbum, state.nextPageId);
+          : state.view === 'trash'
+            ? await getTrashPage(state.nextPageId)
+            : await getAlbumPage(state.currentAlbum, state.nextPageId);
       state.items.push(...page.items);
       state.nextPageId = page.nextPageId;
-      await hydrateMetadata(page.items);
       applyFilterAndSort();
       renderContent();
+      void hydrateMetadata(page.items, state.generation);
     } catch (error) {
       console.error('[GP File Browser] Load more failed', error);
       toast('Could not load more items.');
@@ -1035,7 +1167,12 @@ THE SOFTWARE.
   async function showAlbumPicker(mode) {
     const items = selectedItems();
     if (!items.length) return;
-    if (!state.albums.length) state.albums = await getAlbums();
+    setBusy(true, 'Loading albums…');
+    try {
+      await ensureAllAlbumsLoaded();
+    } finally {
+      setBusy(false);
+    }
     const choices = state.albums
       .filter(album => album.mediaKey !== state.currentAlbum?.mediaKey)
       .map(album => ({ value: album.mediaKey, label: `${album.title} (${album.itemCount})` }));
@@ -1048,12 +1185,31 @@ THE SOFTWARE.
       select: choices,
       confirmLabel: mode === 'move' ? 'Move' : 'Add',
       onConfirm: async albumKey => {
-        await addToAlbum(items.map(item => item.mediaKey), albumKey);
-        if (mode === 'move') await removeFromAlbum(items.map(item => item.mediaKey));
+        const keys = items.map(item => item.mediaKey);
+        await runInChunks(keys, chunk => addToAlbum(chunk, albumKey));
+        if (mode === 'move') await runInChunks(keys, removeFromAlbum);
         toast(`${items.length} item${items.length === 1 ? '' : 's'} ${mode === 'move' ? 'moved' : 'added'}.`);
         if (mode === 'move') await refreshCurrent();
       }
     });
+  }
+
+  async function ensureAllAlbumsLoaded() {
+    if (state.albumsFullyLoaded) return;
+    if (!state.albums.length) {
+      const firstPage = await getAlbumsPage();
+      state.albums = firstPage.items;
+      state.albumsNextPageId = firstPage.nextPageId;
+    }
+    const seen = new Set();
+    while (state.albumsNextPageId) {
+      if (seen.has(state.albumsNextPageId)) break;
+      seen.add(state.albumsNextPageId);
+      const page = await getAlbumsPage(state.albumsNextPageId);
+      state.albums.push(...page.items);
+      state.albumsNextPageId = page.nextPageId;
+    }
+    state.albumsFullyLoaded = true;
   }
 
   function removeSelectedFromAlbum() {
@@ -1064,7 +1220,7 @@ THE SOFTWARE.
       detail: 'The files stay in your Google Photos library.',
       confirmLabel: 'Remove',
       onConfirm: async () => {
-        await removeFromAlbum(items.map(item => item.mediaKey));
+        await runInChunks(items.map(item => item.mediaKey), removeFromAlbum);
         toast(`${items.length} item${items.length === 1 ? '' : 's'} removed.`);
         await refreshCurrent();
       }
@@ -1079,11 +1235,45 @@ THE SOFTWARE.
       detail: 'This affects the original files in your Google Photos library.',
       confirmLabel: 'Move to trash',
       onConfirm: async () => {
-        await moveToTrash(items.map(item => item.dedupKey));
+        await runInChunks(items.map(item => item.dedupKey), moveToTrash);
         toast(`${items.length} item${items.length === 1 ? '' : 's'} moved to trash.`);
         await refreshCurrent();
       }
     });
+  }
+
+  function restoreSelected() {
+    const items = selectedItems().filter(item => item.dedupKey);
+    if (!items.length || state.view !== 'trash') return;
+    showDialog({
+      title: 'Restore selected files?',
+      detail: 'The files will return to your Google Photos library.',
+      confirmLabel: 'Restore',
+      onConfirm: async () => {
+        await runInChunks(items.map(item => item.dedupKey), restoreFromTrash);
+        toast(`${items.length} item${items.length === 1 ? '' : 's'} restored.`);
+        await refreshCurrent();
+      }
+    });
+  }
+
+  async function toggleFavoriteSelected() {
+    const items = selectedItems().filter(item => item.dedupKey);
+    if (!items.length || state.busy) return;
+    const favorite = state.view !== 'favorites';
+    let succeeded = false;
+    setBusy(true, favorite ? 'Adding to Favorites…' : 'Removing from Favorites…');
+    try {
+      await runInChunks(items.map(item => item.dedupKey), chunk => setFavorite(chunk, favorite));
+      toast(`${items.length} item${items.length === 1 ? '' : 's'} ${favorite ? 'favorited' : 'unfavorited'}.`);
+      succeeded = true;
+    } catch (error) {
+      console.error('[GP File Browser] Favorite action failed', error);
+      toast('Could not update Favorites.');
+    } finally {
+      setBusy(false);
+    }
+    if (succeeded && !favorite) await refreshCurrent();
   }
 
   function triggerNativeUpload() {
@@ -1094,6 +1284,8 @@ THE SOFTWARE.
       return;
     }
     const uploadButton = [...document.querySelectorAll('button,[role="button"]')].find(el =>
+      !refs.root.contains(el) &&
+      el !== refs.launcher &&
       /upload|tải lên/i.test(`${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`)
     );
     if (uploadButton) {
@@ -1112,7 +1304,7 @@ THE SOFTWARE.
     injectStyle();
     buildUi();
     updateTheme();
-    state.themeTimer = window.setInterval(() => {
+    window.setInterval(() => {
       if (!document.hidden) updateTheme();
     }, 5000);
     console.log('[GP File Browser] Standalone file browser ready.');

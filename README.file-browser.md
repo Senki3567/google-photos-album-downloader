@@ -6,12 +6,16 @@ Userscript độc lập bổ sung giao diện duyệt tệp ngay trong Google Ph
 
 - Xem album như thư mục và ảnh/video như tệp.
 - Duyệt Library, Favorites và toàn bộ album.
+- Duyệt và khôi phục tệp trong Trash.
+- Chuyển đổi giữa Grid view và List view.
 - Hiển thị thumbnail, tên tệp, ngày và dung lượng.
 - Chọn một hoặc nhiều tệp, hỗ trợ `Ctrl/Cmd + A`.
+- Nút Select all tự đổi thành Deselect all khi mọi mục đang hiển thị đã được chọn.
 - Mở ảnh, sao chép link tải và tải nhiều tệp.
 - Tạo album mới.
 - Thêm tệp vào album hoặc chuyển giữa các album.
 - Xóa tệp khỏi album nhưng vẫn giữ trong thư viện.
+- Thêm hoặc xóa trạng thái Favorites.
 - Chuyển tệp gốc vào thùng rác sau bước xác nhận.
 - Gọi giao diện Upload gốc của Google Photos.
 
