@@ -821,6 +821,19 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       --gp-glass-outline: rgba(255, 255, 255, 0.68);
       --gp-glass-shadow: rgba(45, 55, 72, 0.2);
       --gp-state-layer: rgba(11, 87, 208, 0.1);
+      --gp-glass-surface:
+        radial-gradient(circle at 12% 0%, var(--gp-glass-highlight), transparent 44%),
+        linear-gradient(145deg, var(--gp-secondary-container), transparent 64%),
+        var(--gp-glass);
+      --gp-glass-hover:
+        radial-gradient(circle at 12% 0%, var(--gp-glass-highlight), transparent 44%),
+        color-mix(in srgb, var(--gp-glass) 86%, var(--gp-expressive-container));
+      --gp-glass-primary:
+        radial-gradient(circle at 12% 0%, var(--gp-glass-highlight), transparent 44%),
+        var(--gp-expressive-container);
+      --gp-glass-elevation:
+        inset 0 1px 0 var(--gp-glass-highlight),
+        0 12px 32px var(--gp-glass-shadow);
       --gp-spring: cubic-bezier(0.2, 0, 0, 1.35);
     }
     body.gp-dark-mode {
@@ -852,13 +865,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     .gp-toolbar-btn,
     .gpd-album-hover-details {
       border-color: var(--gp-glass-outline);
-      background:
-        radial-gradient(circle at 16% 0%, var(--gp-glass-highlight), transparent 46%),
-        linear-gradient(145deg, var(--gp-secondary-container), transparent 62%),
-        var(--gp-glass);
-      box-shadow:
-        inset 0 1px 0 var(--gp-glass-highlight),
-        0 10px 28px var(--gp-glass-shadow);
+      background: var(--gp-glass-surface);
+      box-shadow: var(--gp-glass-elevation);
       backdrop-filter: blur(28px) saturate(150%);
       -webkit-backdrop-filter: blur(28px) saturate(150%);
     }
@@ -869,9 +877,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     .gp-hover-row:focus-visible {
       border-radius: 24px;
       border-color: var(--gp-expressive);
-      background:
-        radial-gradient(circle at 16% 0%, var(--gp-glass-highlight), transparent 46%),
-        color-mix(in srgb, var(--gp-glass-strong) 82%, var(--gp-expressive-container));
+      background: var(--gp-glass-hover);
       box-shadow:
         inset 0 1px 0 var(--gp-glass-highlight),
         0 12px 30px color-mix(in srgb, var(--gp-expressive) 20%, transparent);
@@ -882,31 +888,23 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     }
     .gp-toolbar-btn {
       color: var(--gp-card-text);
-      background:
-        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
-        var(--gp-glass-strong);
+      background: var(--gp-glass-surface);
     }
     .gp-toolbar-btn:hover {
       border-radius: 16px;
       color: var(--gp-expressive-on-container);
       border-color: var(--gp-expressive);
-      background:
-        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
-        var(--gp-expressive-container);
+      background: var(--gp-glass-primary);
     }
     body.gp-dark-mode .gp-toolbar-btn {
       color: var(--gp-card-text) !important;
       border-color: var(--gp-glass-outline) !important;
-      background:
-        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
-        var(--gp-glass-strong) !important;
+      background: var(--gp-glass-surface) !important;
     }
     body.gp-dark-mode .gp-toolbar-btn:hover {
       color: var(--gp-expressive-on-container) !important;
       border-color: var(--gp-expressive) !important;
-      background:
-        radial-gradient(circle at 18% 8%, var(--gp-glass-highlight), transparent 48%),
-        var(--gp-expressive-container) !important;
+      background: var(--gp-glass-primary) !important;
     }
     .gp-toolbar-btn:active {
       border-radius: 12px;
@@ -922,28 +920,25 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       overflow: hidden;
       isolation: isolate;
       border-radius: 24px;
-      background:
-        radial-gradient(circle at 4% 0%, var(--gp-glass-highlight), transparent 36%),
-        radial-gradient(circle at 104% 12%, var(--gp-secondary-container), transparent 42%),
-        radial-gradient(circle at 20% 110%, var(--gp-tertiary-container), transparent 42%),
-        var(--gp-glass);
-      box-shadow:
-        inset 0 1px 0 var(--gp-glass-highlight),
-        0 20px 52px var(--gp-glass-shadow),
-        0 3px 12px rgba(32, 33, 36, 0.12);
+      background: var(--gp-glass-surface);
+      box-shadow: var(--gp-glass-elevation);
     }
     body.gp-dark-mode .gpd-album-hover-details {
-      box-shadow:
-        inset 0 1px 0 var(--gp-glass-highlight),
-        0 22px 56px var(--gp-glass-shadow),
-        0 3px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: var(--gp-glass-elevation);
     }
     .gpd-album-summary {
       border-bottom-color: color-mix(in srgb, var(--gp-expressive) 24%, var(--gp-card-border));
     }
+    .gpd-album-file-row {
+      border: 1px solid var(--gp-glass-outline);
+      background: var(--gp-glass-surface);
+      box-shadow: inset 0 1px 0 var(--gp-glass-highlight);
+      backdrop-filter: blur(28px) saturate(150%);
+      -webkit-backdrop-filter: blur(28px) saturate(150%);
+    }
     .gpd-album-file-row:hover {
       border-radius: 16px;
-      background: color-mix(in srgb, var(--gp-state-layer) 72%, var(--gp-glass-strong));
+      background: var(--gp-glass-hover);
     }
     .gpd-album-file-row:active {
       border-radius: 10px;
@@ -952,12 +947,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
     #gp-toast {
       border-color: var(--gp-glass-outline);
       border-radius: 20px;
-      background:
-        radial-gradient(circle at 10% 0%, var(--gp-glass-highlight), transparent 44%),
-        var(--gp-glass-strong);
-      box-shadow:
-        inset 0 1px 0 var(--gp-glass-highlight),
-        0 14px 36px var(--gp-glass-shadow);
+      background: var(--gp-glass-surface);
+      box-shadow: var(--gp-glass-elevation);
       backdrop-filter: blur(28px) saturate(150%);
       -webkit-backdrop-filter: blur(28px) saturate(150%);
     }
