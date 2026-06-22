@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.7.2
+// @version      1.7.3
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -926,8 +926,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       border-radius: 24px;
     }
     .gp-album-access-btn:active {
-      border-radius: 14px;
-      transform: scale(0.94);
+      border-radius: 12px;
+      transform: none;
     }
     .gpd-album-hover-details {
       overflow: hidden;

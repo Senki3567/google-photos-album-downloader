@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.7.1
+// @version      3.7.4
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -475,6 +475,12 @@
             --gpd-glass-surface: var(--gpd-glass);
             --gpd-glass-hover: color-mix(in srgb, var(--gpd-glass) 92%, var(--gpd-expressive));
             --gpd-glass-primary: color-mix(in srgb, var(--gpd-glass) 88%, var(--gpd-expressive));
+            --gpd-primary-action-fill: #d3e3fd;
+            --gpd-primary-action-hover: #c2d7f7;
+            --gpd-secondary-action-fill: #e8eaed;
+            --gpd-secondary-action-hover: #dde1e6;
+            --gpd-secondary-action-text: #3c4043;
+            --gpd-status-fill: var(--gpd-secondary-action-fill);
             --gpd-glass-elevation: 0 6px 20px var(--gpd-glass-shadow);
             --gpd-spring: cubic-bezier(0.2, 0, 0, 1.35);
         }
@@ -488,6 +494,12 @@
             --gpd-glass: rgba(28, 28, 30, 0.72) !important;
             --gpd-glass-outline: rgba(255, 255, 255, 0.14) !important;
             --gpd-glass-shadow: rgba(0, 0, 0, 0.28) !important;
+            --gpd-primary-action-fill: #263d5f !important;
+            --gpd-primary-action-hover: #304b74 !important;
+            --gpd-secondary-action-fill: #343941 !important;
+            --gpd-secondary-action-hover: #3d434c !important;
+            --gpd-secondary-action-text: #d3e3fd !important;
+            --gpd-status-fill: var(--gpd-secondary-action-fill) !important;
         }
         #gpd-trigger-btn {
             border-radius: 18px;
@@ -539,15 +551,25 @@
             background: var(--gpd-glass-hover);
         }
         .gpd-status-card {
-            border-radius: 20px;
-            border-color: var(--gpd-glass-outline);
-            background: rgba(127, 127, 127, 0.06);
+            border: 0;
+            border-radius: 12px;
+            background: var(--gpd-status-fill);
             box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+        .gpd-status-text {
+            color: var(--gpd-secondary-action-text);
+        }
+        .gpd-summary-text {
+            color: var(--gpd-secondary-action-text);
+            opacity: 0.76;
         }
         .gpd-action-btn {
             border-radius: 18px;
             border-color: var(--gpd-glass-outline);
-            background: transparent;
+            color: var(--gpd-secondary-action-text);
+            background: var(--gpd-secondary-action-fill);
             box-shadow: none;
             transition:
                 border-radius 260ms var(--gpd-spring),
@@ -558,26 +580,26 @@
         }
         .gpd-action-btn:hover:not(:disabled) {
             border-radius: 24px;
-            background: var(--gpd-glass-hover);
+            background: var(--gpd-secondary-action-hover);
         }
         .gpd-action-btn:active:not(:disabled) {
             border-radius: 14px;
-            transform: scale(0.94);
+            transform: none;
         }
         .gpd-action-btn-primary {
             color: var(--gpd-expressive-on-container) !important;
             border-color: color-mix(in srgb, var(--gpd-expressive) 22%, transparent);
-            background: var(--gpd-glass-primary) !important;
+            background: var(--gpd-primary-action-fill) !important;
             box-shadow: none;
         }
         .gpd-action-btn-primary:hover:not(:disabled) {
             color: var(--gpd-expressive-on-container) !important;
             border-color: color-mix(in srgb, var(--gpd-expressive) 36%, transparent);
-            background: var(--gpd-glass-hover) !important;
+            background: var(--gpd-primary-action-hover) !important;
         }
         .gpd-action-btn-primary:active:not(:disabled) {
             color: var(--gpd-expressive-on-container) !important;
-            background: var(--gpd-glass-primary) !important;
+            background: var(--gpd-primary-action-fill) !important;
         }
         .gpd-progress-fill {
             background: var(--gpd-expressive);
