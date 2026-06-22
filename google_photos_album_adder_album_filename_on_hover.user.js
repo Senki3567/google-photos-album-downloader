@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos - Album Adder Album Filename and Size on Hover
 // @namespace    https://buymeacoffee.com/sircluckingtonx
-// @version      1.7.3
+// @version      1.7.6
 // @description  Combined Easy Album Adder, Show Album on Hover, Show Filename and File Size on Hover, Copy Direct Download Link, and Album Size info.
 // @author       SirCluckingtonX & Antigravity
 // @license      MIT
@@ -762,48 +762,11 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       text-align: center;
       line-height: 1.45;
     }
-    #gp-toast {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 999999;
-      max-width: min(320px, calc(100vw - 40px));
-      padding: 12px 16px;
-      border: 1px solid var(--gp-card-border);
-      border-radius: 14px;
-      background: var(--gp-card-bg);
-      color: var(--gp-card-text);
-      font: 500 13px/1.45 "Google Sans", Roboto, Arial, sans-serif;
-      box-shadow: var(--gp-card-shadow);
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity 180ms ease, transform 180ms ease;
-      backdrop-filter: blur(18px) saturate(110%);
-      -webkit-backdrop-filter: blur(18px) saturate(110%);
-    }
-    #gp-toast[data-visible="true"] {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    #gp-toast[data-tone="success"] {
-      border-color: var(--gp-success);
-    }
-    #gp-toast[data-tone="error"] {
-      border-color: var(--gp-error);
-    }
-    @media (max-width: 420px) {
-      #gp-toast {
-        right: 16px;
-        bottom: 16px;
-      }
-    }
     @media (prefers-reduced-motion: reduce) {
       .gp-hover-card,
       .gpd-album-hover-details,
       .gp-toolbar-container,
-      .gp-toolbar-btn,
-      #gp-toast {
+      .gp-toolbar-btn {
         transition-duration: 1ms !important;
       }
     }
@@ -829,6 +792,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       --gp-glass-primary: color-mix(in srgb, var(--gp-glass) 88%, var(--gp-expressive));
       --gp-glass-elevation: 0 6px 20px var(--gp-glass-shadow);
       --gp-spring: cubic-bezier(0.2, 0, 0, 1.35);
+      --gp-shape-motion: cubic-bezier(0.2, 0, 0, 1);
     }
     body.gp-dark-mode {
       --gp-expressive: #a8c7fa !important;
@@ -862,8 +826,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
     .gpd-album-hover-details,
     .gpd-album-file-row {
       transition:
-        border-radius 260ms var(--gp-spring),
-        transform 260ms var(--gp-spring),
+        border-radius 180ms var(--gp-shape-motion),
         background-color 160ms ease,
         color 160ms ease,
         border-color 160ms ease,
@@ -886,21 +849,22 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
     }
     .gp-hover-row:hover,
     .gp-hover-row:focus-visible {
-      border-radius: 24px;
+      border-radius: 18px;
       border-color: var(--gp-expressive);
       background: var(--gp-glass-hover);
       box-shadow: var(--gp-glass-elevation);
     }
     .gp-hover-row:active {
-      border-radius: 12px;
-      transform: scale(0.98);
+      border-radius: 999px;
+      transform: none;
     }
     .gp-toolbar-btn {
+      border-radius: 14px;
       color: var(--gp-card-text);
       background: var(--gp-glass-surface);
     }
     .gp-toolbar-btn:hover {
-      border-radius: 16px;
+      border-radius: 14px;
       color: var(--gp-expressive-on-container);
       border-color: var(--gp-expressive);
       background: var(--gp-glass-primary);
@@ -916,17 +880,17 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       background: var(--gp-glass-primary) !important;
     }
     .gp-toolbar-btn:active {
-      border-radius: 12px;
-      transform: scale(0.92);
+      border-radius: 999px;
+      transform: none;
     }
     .gp-album-access-btn {
       border-radius: 18px;
     }
     .gp-album-access-btn:hover {
-      border-radius: 24px;
+      border-radius: 18px;
     }
     .gp-album-access-btn:active {
-      border-radius: 12px;
+      border-radius: 999px;
       transform: none;
     }
     .gpd-album-hover-details {
@@ -943,6 +907,7 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       border-bottom-color: color-mix(in srgb, var(--gp-expressive) 24%, var(--gp-card-border));
     }
     .gpd-album-file-row {
+      border-radius: 12px;
       border: 1px solid var(--gp-glass-outline);
       background: transparent;
       box-shadow: none;
@@ -950,20 +915,12 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
       -webkit-backdrop-filter: none;
     }
     .gpd-album-file-row:hover {
-      border-radius: 16px;
+      border-radius: 12px;
       background: var(--gp-glass-hover);
     }
     .gpd-album-file-row:active {
-      border-radius: 10px;
-      transform: scale(0.985);
-    }
-    #gp-toast {
-      border-color: var(--gp-glass-outline);
-      border-radius: 20px;
-      background: var(--gp-glass-surface);
-      box-shadow: var(--gp-glass-elevation);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      border-radius: 999px;
+      transform: none;
     }
   `;
   document.head.appendChild(style);
@@ -971,22 +928,8 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #a8c7fa;
   /* =============================================================
    *  4. EASY ALBUM ADDER
    * ============================================================= */
-  const toast = (msg, { duration = 2200, tone = 'neutral' } = {}) => {
-    let el = document.getElementById('gp-toast');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'gp-toast';
-      el.setAttribute('role', 'status');
-      el.setAttribute('aria-live', 'polite');
-      el.setAttribute('aria-atomic', 'true');
-      document.body.appendChild(el);
-    }
-    el.textContent = msg;
-    el.dataset.tone = tone;
-    el.dataset.visible = 'true';
-    clearTimeout(el._t);
-    el._t = setTimeout(() => (el.dataset.visible = 'false'), duration);
-  };
+  // Floating corner notifications are intentionally disabled.
+  const toast = () => {};
 
   const busyTexts = [/Adding/i, /Deleting album/i, /Album deleted/i, /Waiting for Photos/i, /\b\d+\s+(?:item|items)\s+(?:added to album|already in album|new item added)/i];
   function isBusy() {

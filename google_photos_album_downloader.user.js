@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.7.4
+// @version      3.7.10
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -137,11 +137,11 @@
             -webkit-backdrop-filter: blur(10px);
         }
         #gpd-trigger-btn:hover {
-            transform: scale(1.08);
+            transform: none;
             background: var(--gpd-btn-trigger-hover);
         }
         #gpd-trigger-btn:active {
-            transform: scale(0.95);
+            transform: none;
         }
 
         #gpd-panel {
@@ -481,8 +481,12 @@
             --gpd-secondary-action-hover: #dde1e6;
             --gpd-secondary-action-text: #3c4043;
             --gpd-status-fill: var(--gpd-secondary-action-fill);
+            --gpd-trigger-fill: rgba(18, 18, 18, 0.94);
+            --gpd-trigger-hover: #282828;
+            --gpd-trigger-text: #e8eaed;
             --gpd-glass-elevation: 0 6px 20px var(--gpd-glass-shadow);
             --gpd-spring: cubic-bezier(0.2, 0, 0, 1.35);
+            --gpd-shape-motion: cubic-bezier(0.2, 0, 0, 1);
         }
         body.gp-dark-mode {
             --gpd-expressive: #a8c7fa !important;
@@ -500,30 +504,47 @@
             --gpd-secondary-action-hover: #3d434c !important;
             --gpd-secondary-action-text: #d3e3fd !important;
             --gpd-status-fill: var(--gpd-secondary-action-fill) !important;
+            --gpd-trigger-fill: rgba(18, 18, 18, 0.94) !important;
+            --gpd-trigger-hover: #282828 !important;
+            --gpd-trigger-text: #e8eaed !important;
         }
         #gpd-trigger-btn {
-            border-radius: 18px;
-            border-color: var(--gpd-glass-outline);
-            background: var(--gpd-glass-surface);
-            box-shadow: var(--gpd-glass-elevation);
+            width: auto;
+            height: 56px;
+            min-width: 56px;
+            padding: 0 20px;
+            gap: 12px;
+            border-radius: 999px;
+            border-color: transparent;
+            color: var(--gpd-trigger-text);
+            background: var(--gpd-trigger-fill);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             transition:
-                border-radius 260ms var(--gpd-spring),
-                transform 260ms var(--gpd-spring),
                 background-color 180ms ease,
+                border-color 180ms ease,
                 box-shadow 180ms ease,
                 opacity 160ms ease;
         }
         #gpd-trigger-btn:hover {
-            border-radius: 24px;
-            color: var(--gpd-expressive-on-container);
-            background: var(--gpd-glass-primary);
-            box-shadow: var(--gpd-glass-elevation);
+            border-radius: 999px;
+            color: var(--gpd-trigger-text);
+            border-color: var(--gpd-glass-outline);
+            background: var(--gpd-trigger-hover);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
         }
         #gpd-trigger-btn:active {
-            border-radius: 14px;
-            transform: scale(0.94);
+            border-radius: 999px;
+            transform: none;
+            background: var(--gpd-trigger-fill);
+        }
+        .gpd-trigger-label {
+            font-family: "Google Sans", Roboto, Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 1;
+            white-space: nowrap;
         }
         #gpd-panel {
             overflow: hidden;
@@ -542,13 +563,24 @@
             box-shadow: none;
         }
         .gpd-close-btn {
+            border-radius: 14px;
             border: 1px solid var(--gpd-glass-outline);
             background: transparent;
             box-shadow: none;
+            transition:
+                border-radius 180ms var(--gpd-shape-motion),
+                background-color 160ms ease,
+                color 160ms ease,
+                border-color 160ms ease;
         }
         .gpd-close-btn:hover {
+            border-radius: 14px;
             color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-hover);
+        }
+        .gpd-close-btn:active {
+            border-radius: 999px;
+            transform: none;
         }
         .gpd-status-card {
             border: 0;
@@ -572,18 +604,18 @@
             background: var(--gpd-secondary-action-fill);
             box-shadow: none;
             transition:
-                border-radius 260ms var(--gpd-spring),
-                transform 260ms var(--gpd-spring),
+                border-radius 180ms var(--gpd-shape-motion),
                 background-color 160ms ease,
                 color 160ms ease,
                 border-color 160ms ease;
         }
         .gpd-action-btn:hover:not(:disabled) {
-            border-radius: 24px;
+            border-radius: 18px;
+            border-color: var(--gpd-expressive);
             background: var(--gpd-secondary-action-hover);
         }
         .gpd-action-btn:active:not(:disabled) {
-            border-radius: 14px;
+            border-radius: 999px;
             transform: none;
         }
         .gpd-action-btn-primary {
@@ -594,7 +626,7 @@
         }
         .gpd-action-btn-primary:hover:not(:disabled) {
             color: var(--gpd-expressive-on-container) !important;
-            border-color: color-mix(in srgb, var(--gpd-expressive) 36%, transparent);
+            border-color: var(--gpd-expressive);
             background: var(--gpd-primary-action-hover) !important;
         }
         .gpd-action-btn-primary:active:not(:disabled) {
@@ -668,7 +700,10 @@
         panelTrigger.setAttribute('aria-label', 'Open album download tools');
         panelTrigger.setAttribute('aria-controls', 'gpd-panel');
         panelTrigger.setAttribute('aria-expanded', 'false');
-        panelTrigger.replaceChildren(createDownloadIcon());
+        const triggerLabel = document.createElement('span');
+        triggerLabel.className = 'gpd-trigger-label';
+        triggerLabel.textContent = 'Album downloader';
+        panelTrigger.replaceChildren(createDownloadIcon(), triggerLabel);
         document.body.appendChild(panelTrigger);
 
         // 2. Create Panel
