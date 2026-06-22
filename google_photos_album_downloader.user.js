@@ -466,6 +466,10 @@
             --gpd-expressive: #0b57d0;
             --gpd-expressive-container: rgba(11, 87, 208, 0.1);
             --gpd-expressive-on-container: #041e49;
+            --gpd-success: #0b57d0;
+            --gpd-error: #0b57d0;
+            --gpd-focus: #0b57d0;
+            --gpd-accent: #0b57d0;
             --gpd-glass: rgba(255, 255, 255, 0.72);
             --gpd-glass-highlight: rgba(255, 255, 255, 0.72);
             --gpd-glass-outline: rgba(60, 64, 67, 0.16);
@@ -481,6 +485,10 @@
             --gpd-expressive: #a8c7fa !important;
             --gpd-expressive-container: rgba(168, 199, 250, 0.12) !important;
             --gpd-expressive-on-container: #d3e3fd !important;
+            --gpd-success: #a8c7fa !important;
+            --gpd-error: #a8c7fa !important;
+            --gpd-focus: #a8c7fa !important;
+            --gpd-accent: #a8c7fa !important;
             --gpd-glass: rgba(28, 28, 30, 0.72) !important;
             --gpd-glass-highlight: rgba(255, 255, 255, 0.12) !important;
             --gpd-glass-outline: rgba(255, 255, 255, 0.14) !important;
@@ -568,12 +576,17 @@
         .gpd-action-btn-primary {
             color: var(--gpd-expressive-on-container) !important;
             border-color: color-mix(in srgb, var(--gpd-expressive) 22%, transparent);
-            background: var(--gpd-glass-primary);
+            background: var(--gpd-glass-primary) !important;
             box-shadow: none;
         }
         .gpd-action-btn-primary:hover:not(:disabled) {
             color: var(--gpd-expressive-on-container) !important;
-            background: var(--gpd-glass-primary);
+            border-color: color-mix(in srgb, var(--gpd-expressive) 36%, transparent);
+            background: var(--gpd-glass-hover) !important;
+        }
+        .gpd-action-btn-primary:active:not(:disabled) {
+            color: var(--gpd-expressive-on-container) !important;
+            background: var(--gpd-glass-primary) !important;
         }
         .gpd-progress-fill {
             background: var(--gpd-expressive);

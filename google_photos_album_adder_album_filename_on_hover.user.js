@@ -813,6 +813,15 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       --gp-expressive: #0b57d0;
       --gp-expressive-container: rgba(11, 87, 208, 0.1);
       --gp-expressive-on-container: #041e49;
+      --gp-primary: #0b57d0;
+      --gp-primary-container: rgba(11, 87, 208, 0.1);
+      --gp-on-primary-container: #041e49;
+      --gp-link-color: #0b57d0;
+      --gp-link-hover: #0842a0;
+      --gp-success: #0b57d0;
+      --gp-error: #0b57d0;
+      --gp-text-dim: #0b57d0;
+      --gp-focus: #0b57d0;
       --gp-glass: rgba(255, 255, 255, 0.72);
       --gp-glass-highlight: rgba(255, 255, 255, 0.72);
       --gp-glass-outline: rgba(60, 64, 67, 0.16);
@@ -828,11 +837,31 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       --gp-expressive: #a8c7fa !important;
       --gp-expressive-container: rgba(168, 199, 250, 0.12) !important;
       --gp-expressive-on-container: #d3e3fd !important;
+      --gp-primary: #a8c7fa !important;
+      --gp-primary-container: rgba(168, 199, 250, 0.12) !important;
+      --gp-on-primary-container: #d3e3fd !important;
+      --gp-link-color: #a8c7fa !important;
+      --gp-link-hover: #d3e3fd !important;
+      --gp-success: #a8c7fa !important;
+      --gp-error: #a8c7fa !important;
+      --gp-text-dim: #a8c7fa !important;
+      --gp-focus: #a8c7fa !important;
       --gp-glass: rgba(28, 28, 30, 0.72) !important;
       --gp-glass-highlight: rgba(255, 255, 255, 0.12) !important;
       --gp-glass-outline: rgba(255, 255, 255, 0.14) !important;
       --gp-glass-shadow: rgba(0, 0, 0, 0.28) !important;
       --gp-state-layer: rgba(168, 199, 250, 0.1) !important;
+    }
+    body.gp-light-mode {
+      --gp-primary: #0b57d0 !important;
+      --gp-primary-container: rgba(11, 87, 208, 0.1) !important;
+      --gp-on-primary-container: #041e49 !important;
+      --gp-link-color: #0b57d0 !important;
+      --gp-link-hover: #0842a0 !important;
+      --gp-success: #0b57d0 !important;
+      --gp-error: #0b57d0 !important;
+      --gp-text-dim: #0b57d0 !important;
+      --gp-focus: #0b57d0 !important;
     }
     .gp-hover-row,
     .gp-toolbar-btn,
@@ -854,6 +883,9 @@ console.log('%c[GP-Master] Master Script successfully loaded!', 'color: #10b981;
       box-shadow: var(--gp-glass-elevation);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+    }
+    .gp-not-in-album::after {
+      box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--gp-expressive) 72%, transparent);
     }
     .gp-hover-row {
       border-radius: 18px;
