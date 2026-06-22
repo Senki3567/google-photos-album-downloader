@@ -1,12 +1,19 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.8.2
+// @version      3.8.7
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
 // @match        *://photos.google.com/*
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @grant        GM.xmlHttpRequest
+// @grant        unsafeWindow
+// @connect      video-downloads.googleusercontent.com
+// @connect      lh3.googleusercontent.com
+// @connect      *.googleusercontent.com
+// @connect      *.usercontent.google.com
+// @connect      *.googlevideo.com
 // @run-at       document-end
 // @noframes
 // ==/UserScript==
@@ -18,7 +25,7 @@
         return;
     }
 
-    console.log('[GP Downloader] Userscript injected.');
+    console.log('[GP Downloader] Userscript 3.8.7 injected.');
 
     // Material Design SVG Paths
     const PATH_DOWNLOAD = "M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z";
@@ -364,32 +371,6 @@
             background: var(--gpd-surface-container);
             color: var(--gpd-text);
         }
-        .gpd-status-card {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 11px 12px;
-            border-radius: 16px;
-            border: 1px solid color-mix(in srgb, var(--gpd-panel-border) 70%, transparent);
-            background: var(--gpd-surface-container);
-        }
-        .gpd-status-text {
-            color: var(--gpd-text);
-            font-size: 13px;
-            font-weight: 600;
-            line-height: 1.4;
-        }
-        .gpd-status-text[data-tone="success"] {
-            color: var(--gpd-success);
-        }
-        .gpd-status-text[data-tone="error"] {
-            color: var(--gpd-error);
-        }
-        .gpd-summary-text {
-            color: var(--gpd-text-secondary);
-            font-size: 12px;
-            line-height: 1.45;
-        }
         .gpd-actions {
             display: grid;
             grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -480,7 +461,6 @@
             --gpd-secondary-action-fill: #e8eaed;
             --gpd-secondary-action-hover: #dde1e6;
             --gpd-secondary-action-text: #3c4043;
-            --gpd-status-fill: var(--gpd-secondary-action-fill);
             --gpd-trigger-fill: rgba(18, 18, 18, 0.94);
             --gpd-trigger-hover: #282828;
             --gpd-trigger-text: #e8eaed;
@@ -503,7 +483,6 @@
             --gpd-secondary-action-fill: #343941 !important;
             --gpd-secondary-action-hover: #3d434c !important;
             --gpd-secondary-action-text: #d3e3fd !important;
-            --gpd-status-fill: var(--gpd-secondary-action-fill) !important;
             --gpd-trigger-fill: rgba(18, 18, 18, 0.94) !important;
             --gpd-trigger-hover: #282828 !important;
             --gpd-trigger-text: #e8eaed !important;
@@ -581,21 +560,6 @@
         .gpd-close-btn:active {
             border-radius: 999px;
             transform: none;
-        }
-        .gpd-status-card {
-            border: 0;
-            border-radius: 12px;
-            background: var(--gpd-status-fill);
-            box-shadow: none;
-            backdrop-filter: none;
-            -webkit-backdrop-filter: none;
-        }
-        .gpd-status-text {
-            color: var(--gpd-secondary-action-text);
-        }
-        .gpd-summary-text {
-            color: var(--gpd-secondary-action-text);
-            opacity: 0.76;
         }
         .gpd-action-btn {
             border-radius: 18px;
@@ -732,7 +696,7 @@
     `;
     document.head.appendChild(style);
 
-    let panel, panelTrigger, panelClose, progressBar, progressFill, statusText, summaryText;
+    let panel, panelTrigger, panelClose, progressBar, progressFill;
     let linkListSection, linkList;
     let scanBtn, copyBtn, downloadAllBtn;
     let albumMediaKey = null;
@@ -754,18 +718,6 @@
     function setButtonLabel(button, label) {
         const labelNode = button?.querySelector('.gpd-action-label');
         if (labelNode) labelNode.textContent = label;
-    }
-
-    function setPanelStatus(message, detail, tone = 'neutral') {
-        if (statusText) {
-            statusText.textContent = message;
-            statusText.dataset.tone = tone;
-        }
-        if (summaryText) {
-            const hasDetail = Boolean(detail);
-            summaryText.textContent = hasDetail ? detail : '';
-            summaryText.style.display = hasDetail ? 'block' : 'none';
-        }
     }
 
     function setProgress(value, tone = 'primary') {
@@ -887,23 +839,6 @@
         panelHeader.append(brandMark, headingGroup, panelClose);
         panel.appendChild(panelHeader);
 
-        const statusCard = document.createElement('div');
-        statusCard.className = 'gpd-status-card';
-
-        statusText = document.createElement('div');
-        statusText.className = 'gpd-status-text';
-        statusText.setAttribute('role', 'status');
-        statusText.setAttribute('aria-live', 'polite');
-        statusText.textContent = 'Ready';
-
-        summaryText = document.createElement('div');
-        summaryText.className = 'gpd-summary-text';
-        summaryText.textContent = '';
-        summaryText.style.display = 'none';
-
-        statusCard.append(statusText, summaryText);
-        panel.appendChild(statusCard);
-
         // Progress bar
         progressBar = document.createElement('div');
         progressBar.className = 'gpd-progress-bar';
@@ -925,6 +860,7 @@
         scanBtn = document.createElement('button');
         scanBtn.type = 'button';
         scanBtn.className = 'gpd-action-btn gpd-action-btn-primary gpd-action-btn--wide';
+        scanBtn.setAttribute('aria-live', 'polite');
         setButtonContent(scanBtn, PATH_LINK, 'Fetch links');
         actions.appendChild(scanBtn);
 
@@ -1091,7 +1027,6 @@
                 fetchedItems = [];
                 clearIndividualLinks();
                 setProgress(0);
-                setPanelStatus('Ready', '');
                 if (scanBtn) {
                     scanBtn.disabled = false;
                     setButtonContent(scanBtn, PATH_LINK, 'Fetch links');
@@ -1120,7 +1055,8 @@
     }
 
     async function sendRpc(rpcid, data) {
-        const wizData = window.WIZ_global_data;
+        const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+        const wizData = pageWindow.WIZ_global_data;
         if (!wizData) {
             throw new Error('WIZ_global_data not found. Refresh page.');
         }
@@ -1198,60 +1134,63 @@
         }, 10000);
     }
 
-    async function resolveAllDownloadUrls() {
+    function getPipelineConcurrency(total) {
+        if (total <= 50) return Math.min(16, total);
+        if (total <= 200) return 12;
+        return 8;
+    }
+
+    async function resolveFilenameForItem(item) {
+        if (!item?.downloadUrl || (item.filename && item.filename !== '(unknown)')) {
+            return item?.filename || null;
+        }
+
+        let filename = await requestDownloadFilename(item.downloadUrl, true);
+        if (!filename) {
+            filename = await requestDownloadFilename(item.downloadUrl, false);
+        }
+        if (filename) item.filename = filename;
+        return filename;
+    }
+
+    async function resolveAllDownloadUrls(readNamesDuringResolve = false) {
         const total = fetchedItems.length;
-        setButtonLabel(scanBtn, `Resolving 0/${total}`);
-        setPanelStatus(`Resolving links · 0/${total}`, '');
+        const activityLabel = readNamesDuringResolve ? 'Loading files' : 'Resolving links';
+        setButtonLabel(scanBtn, `${activityLabel} 0/${total}`);
         setProgress(0);
 
         let completed = 0;
-        const concurrencyLimit = 10;
-        let index = 0;
+        let nextIndex = 0;
 
-        await new Promise((resolve) => {
-            async function next() {
-                if (index >= fetchedItems.length) {
-                    if (completed === fetchedItems.length) resolve();
-                    return;
-                }
-
-                while (index < fetchedItems.length && (index - completed) < concurrencyLimit) {
-                    const curIdx = index++;
-                    const item = fetchedItems[curIdx];
-
-                    if (item.downloadUrl) {
-                        completed++;
-                        const percent = Math.round((completed / total) * 100);
-                        setProgress(percent);
-                        setButtonLabel(scanBtn, `Resolving ${completed}/${total}`);
-                        setPanelStatus(`Resolving links · ${completed}/${total}`, '');
-                        if (completed === total) resolve();
-                        continue;
+        async function worker() {
+            while (nextIndex < fetchedItems.length) {
+                const item = fetchedItems[nextIndex++];
+                try {
+                    if (!item.downloadUrl) {
+                        const details = await sendRpc(
+                            'VrseUb',
+                            [item.mediaKey, null, authKey, null, albumMediaKey]
+                        );
+                        item.downloadUrl = details ? (details[7] || details[1]) : null;
                     }
-
-                    (async () => {
-                        try {
-                            const details = await sendRpc('VrseUb', [item.mediaKey, null, authKey, null, albumMediaKey]);
-                            item.downloadUrl = details ? (details[7] || details[1]) : null;
-                        } catch (e) {
-                            console.error('Failed to resolve URL for item:', item.mediaKey, e);
-                        } finally {
-                            completed++;
-                            const percent = Math.round((completed / total) * 100);
-                            setProgress(percent);
-                            setButtonLabel(scanBtn, `Resolving ${completed}/${total}`);
-                            setPanelStatus(`Resolving links · ${completed}/${total}`, '');
-                            if (completed === total) {
-                                resolve();
-                            } else {
-                                next();
-                            }
-                        }
-                    })();
+                    if (readNamesDuringResolve) {
+                        await resolveFilenameForItem(item);
+                    }
+                } catch (error) {
+                    console.error('Failed to resolve album item:', item.mediaKey, error);
+                } finally {
+                    completed++;
+                    const percent = Math.round((completed / total) * 100);
+                    setProgress(percent);
+                    setButtonLabel(scanBtn, `${activityLabel} ${completed}/${total}`);
                 }
             }
-            next();
-        });
+        }
+
+        await Promise.all(Array.from(
+            { length: getPipelineConcurrency(total) },
+            () => worker()
+        ));
     }
 
     async function resolveAllFilenames() {
@@ -1300,6 +1239,143 @@
         ));
     }
 
+    function decodeHeaderFilename(value) {
+        if (!value) return null;
+
+        const extendedMatch = value.match(/filename\*\s*=\s*(?:UTF-8'')?([^;]+)/i);
+        if (extendedMatch) {
+            const encodedName = extendedMatch[1].trim().replace(/^["']|["']$/g, '');
+            try {
+                return decodeURIComponent(encodedName);
+            } catch {
+                return encodedName;
+            }
+        }
+
+        const basicMatch = value.match(/filename\s*=\s*(?:"([^"]+)"|([^;]+))/i);
+        return basicMatch ? (basicMatch[1] || basicMatch[2]).trim() : null;
+    }
+
+    function extractFilenameFromResponseHeaders(responseHeaders) {
+        if (!responseHeaders) return null;
+        if (typeof responseHeaders.get === 'function') {
+            return decodeHeaderFilename(responseHeaders.get('content-disposition'));
+        }
+        const dispositionLine = responseHeaders
+            .split(/\r?\n/)
+            .find(line => /^content-disposition\s*:/i.test(line));
+        if (!dispositionLine) return null;
+        return decodeHeaderFilename(dispositionLine.slice(dispositionLine.indexOf(':') + 1));
+    }
+
+    function extractFilenameFromDownloadUrl(downloadUrl) {
+        try {
+            const parsedUrl = new URL(downloadUrl);
+            for (const key of ['filename', 'file', 'name']) {
+                const value = parsedUrl.searchParams.get(key);
+                if (value) return value;
+            }
+
+            const lastSegment = decodeURIComponent(parsedUrl.pathname.split('/').pop() || '');
+            return /\.[a-z0-9]{2,8}$/i.test(lastSegment) ? lastSegment : null;
+        } catch {
+            return null;
+        }
+    }
+
+    function getCrossOriginRequest() {
+        if (typeof GM_xmlhttpRequest === 'function') {
+            return GM_xmlhttpRequest;
+        }
+        if (typeof GM !== 'undefined' && typeof GM.xmlHttpRequest === 'function') {
+            return GM.xmlHttpRequest.bind(GM);
+        }
+        return null;
+    }
+
+    function requestDownloadFilename(downloadUrl, useFetchMode = true) {
+        const filenameInUrl = extractFilenameFromDownloadUrl(downloadUrl);
+        if (filenameInUrl) return Promise.resolve(filenameInUrl);
+        const crossOriginRequest = getCrossOriginRequest();
+        if (!crossOriginRequest) {
+            console.warn('[GP Downloader] No userscript cross-origin request API is available.');
+            return Promise.resolve(null);
+        }
+
+        return new Promise(resolve => {
+            let settled = false;
+            const finish = filename => {
+                if (settled) return;
+                settled = true;
+                resolve(filename || null);
+            };
+
+            try {
+                const requestResult = crossOriginRequest({
+                    method: 'HEAD',
+                    url: downloadUrl,
+                    anonymous: true,
+                    fetch: useFetchMode,
+                    redirect: 'follow',
+                    timeout: 15000,
+                    onload: response => finish(extractFilenameFromResponseHeaders(response.responseHeaders)),
+                    ontimeout: () => finish(null),
+                    onerror: error => {
+                        console.warn('[GP Downloader] Filename header request failed.', error);
+                        finish(null);
+                    },
+                    onabort: () => finish(null)
+                });
+
+                if (requestResult && typeof requestResult.then === 'function') {
+                    requestResult
+                        .then(response => finish(extractFilenameFromResponseHeaders(response?.responseHeaders)))
+                        .catch(error => {
+                            console.warn('[GP Downloader] Filename header request rejected.', error);
+                            finish(null);
+                        });
+                }
+            } catch {
+                finish(null);
+            }
+        });
+    }
+
+    async function resolveSharedFilenamesFromDownloadHeaders() {
+        const unresolvedItems = fetchedItems.filter(
+            item => (!item.filename || item.filename === '(unknown)') && item.downloadUrl
+        );
+        if (!unresolvedItems.length) return;
+
+        let completed = 0;
+        let nextIndex = 0;
+        setButtonLabel(scanBtn, `Reading names 0/${unresolvedItems.length}`);
+
+        async function worker() {
+            while (nextIndex < unresolvedItems.length) {
+                const item = unresolvedItems[nextIndex++];
+                await resolveFilenameForItem(item);
+
+                completed++;
+                setButtonLabel(scanBtn, `Reading names ${completed}/${unresolvedItems.length}`);
+            }
+        }
+
+        await Promise.all(Array.from(
+            { length: getPipelineConcurrency(unresolvedItems.length) },
+            () => worker()
+        ));
+
+        const unresolvedCount = unresolvedItems.filter(
+            item => !item.filename || item.filename === '(unknown)'
+        ).length;
+        if (unresolvedCount) {
+            console.warn(
+                `[GP Downloader] Could not read ${unresolvedCount}/${unresolvedItems.length} shared filename headers.`
+            );
+        }
+    }
+
     async function startScanningWorkflow() {
         if (!albumMediaKey || isWorking) return;
 
@@ -1310,7 +1386,6 @@
         
         scanBtn.setAttribute('aria-busy', 'true');
         setButtonLabel(scanBtn, 'Scanning album');
-        setPanelStatus('Scanning album…', '');
         setProgress(0);
         clearIndividualLinks();
 
@@ -1336,7 +1411,6 @@
             const total = albumItems.length;
             if (total === 0) {
                 setButtonLabel(scanBtn, 'Try again');
-                setPanelStatus('No items found', 'Open the album again and retry.', 'error');
                 setProgress(100, 'error');
                 isWorking = false;
                 scanBtn.disabled = false;
@@ -1350,16 +1424,26 @@
                 filename: previousItems.get(mediaKey)?.filename || null
             }));
             
-            // Resolve filenames alongside direct links without slowing the URL pipeline.
-            const filenamePromise = resolveAllFilenames();
-            await resolveAllDownloadUrls();
-            await filenamePromise;
+            const isSharedAlbum = window.location.pathname.split('/').includes('share');
+            if (isSharedAlbum) {
+                // Shared-only media does not expose filenames through EWgK9e.
+                // Read each header immediately after its direct URL becomes available.
+                await resolveAllDownloadUrls(true);
+            } else {
+                // Owned albums can load metadata in one batch while direct URLs resolve.
+                const filenamePromise = resolveAllFilenames();
+                await resolveAllDownloadUrls(false);
+                await filenamePromise;
+                await resolveSharedFilenamesFromDownloadHeaders();
+            }
 
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
             const failedCount = total - urls.length;
+            const unresolvedFilenameCount = fetchedItems.filter(
+                item => item.downloadUrl && (!item.filename || item.filename === '(unknown)')
+            ).length;
             if (urls.length === 0) {
                 setButtonLabel(scanBtn, 'Try again');
-                setPanelStatus('Could not fetch links', 'Refresh Google Photos and retry.', 'error');
                 setProgress(100, 'error');
                 copyBtn.disabled = true;
                 downloadAllBtn.disabled = true;
@@ -1367,21 +1451,18 @@
                 setButtonLabel(scanBtn, `Retry ${failedCount} missing`);
                 setButtonLabel(copyBtn, `Copy all ${urls.length}`);
                 setButtonLabel(downloadAllBtn, `Download ${urls.length}`);
-                setPanelStatus(
-                    `${urls.length}/${total} links ready`,
-                    `Retry ${failedCount} missing link${failedCount === 1 ? '' : 's'}.`,
-                    'error'
-                );
                 setProgress(Math.round((urls.length / total) * 100), 'error');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
                 renderIndividualLinks();
             } else {
-                setButtonLabel(scanBtn, 'Refresh links');
+                setButtonLabel(
+                    scanBtn,
+                    unresolvedFilenameCount ? `Retry ${unresolvedFilenameCount} names` : 'Refresh links'
+                );
                 setButtonLabel(copyBtn, 'Copy all');
                 setButtonLabel(downloadAllBtn, 'Download');
-                setPanelStatus(`${urls.length} links ready`, '', 'success');
-                setProgress(100, 'success');
+                setProgress(100, unresolvedFilenameCount ? 'error' : 'success');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
                 renderIndividualLinks();
@@ -1389,7 +1470,6 @@
         } catch (error) {
             console.error('Fetch error:', error);
             setButtonLabel(scanBtn, 'Try again');
-            setPanelStatus('Scan failed', 'Refresh Google Photos and retry.', 'error');
             setProgress(100, 'error');
         } finally {
             isWorking = false;
@@ -1409,7 +1489,6 @@
         try {
             await navigator.clipboard.writeText(urls.join('\n'));
             setButtonContent(copyBtn, PATH_CHECK, 'Copied');
-            setPanelStatus(`${urls.length} links copied`, '', 'success');
             
             setTimeout(() => {
                 setButtonContent(copyBtn, PATH_COPY, 'Copy all');
@@ -1418,7 +1497,6 @@
         } catch (error) {
             console.error('Copy error:', error);
             setButtonLabel(copyBtn, 'Copy failed');
-            setPanelStatus('Copy failed', 'Allow clipboard access and retry.', 'error');
             setTimeout(() => setButtonContent(copyBtn, PATH_COPY, 'Copy all'), 2500);
         }
     }
@@ -1438,7 +1516,6 @@
 
         downloadAllBtn.setAttribute('aria-busy', 'true');
         setButtonLabel(downloadAllBtn, `Downloading 0/${urls.length}`);
-        setPanelStatus(`Downloading · 0/${urls.length}`, '');
         setProgress(0);
 
         try {
@@ -1446,14 +1523,12 @@
                 setButtonLabel(downloadAllBtn, `Downloading ${i + 1}/${urls.length}`);
                 const percent = Math.round(((i + 1) / urls.length) * 100);
                 setProgress(percent);
-                setPanelStatus(`Downloading · ${i + 1}/${urls.length}`, '');
                 
                 await triggerSingleDownload(urls[i]);
                 await new Promise(r => setTimeout(r, 500));
             }
 
             setButtonContent(downloadAllBtn, PATH_CHECK, 'Started');
-            setPanelStatus(`${urls.length} downloads started`, '', 'success');
             setProgress(100, 'success');
             
             setTimeout(() => {
@@ -1463,7 +1538,6 @@
         } catch (error) {
             console.error('Download all error:', error);
             setButtonLabel(downloadAllBtn, 'Download failed');
-            setPanelStatus('Download interrupted', 'Allow multiple downloads and retry.', 'error');
             setProgress(100, 'error');
         } finally {
             isWorking = false;
