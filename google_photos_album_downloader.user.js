@@ -34,6 +34,7 @@
     const PATH_COPY = "M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm0 16H8V7h11v14z";
     const PATH_CHECK = "M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z";
     const PATH_CLOSE = "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z";
+    const PATH_REFRESH = "M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z";
 
     // Helper to create SVG programmatically (avoids Trusted Types innerHTML issues)
     function createSvgIcon(pathD, size = 20) {
@@ -216,18 +217,18 @@
         .gpd-progress-bar {
             width: 100%;
             height: 3px;
-            background: var(--gpd-progress-bg);
+            background-color: var(--gpd-progress-bg);
+            background-image: linear-gradient(to right, var(--gpd-accent), var(--gpd-accent));
+            background-repeat: no-repeat;
+            background-size: var(--gpd-progress-percent, 0%) 100%;
+            background-origin: border-box;
+            background-clip: border-box;
             border-radius: 1.5px;
             overflow: hidden;
             margin-bottom: 4px;
+            transition: background-size 100ms linear;
         }
-        .gpd-progress-fill {
-            height: 100%;
-            width: 0%;
-            background: var(--gpd-accent);
-            border-radius: 1.5px;
-            transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
-        }
+
 
         /* Material 3 refinement layer */
         body {
@@ -336,6 +337,18 @@
             border-radius: 14px;
             color: var(--gpd-on-primary-container);
             background: var(--gpd-primary-container);
+            cursor: pointer;
+            border: none;
+            outline: none;
+            padding: 0;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+        }
+        .gpd-brand-mark:hover {
+            background: var(--gpd-surface-container);
+            color: var(--gpd-text);
+        }
+        .gpd-brand-mark:active {
+            transform: scale(0.95);
         }
         .gpd-heading-group {
             min-width: 0;
@@ -345,8 +358,9 @@
             margin: 0;
             color: var(--gpd-text);
             font-size: 16px;
-            font-weight: 600;
+            font-weight: 500;
             line-height: 1.35;
+            text-align: center;
         }
         .gpd-subtitle {
             margin: 2px 0 0;
@@ -383,7 +397,7 @@
             border-color: var(--gpd-panel-border);
             color: var(--gpd-btn-text);
             font-family: inherit;
-            font-weight: 600;
+            font-weight: 500;
             transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
             touch-action: manipulation;
         }
@@ -412,17 +426,15 @@
             height: 4px;
             margin: 0;
             border-radius: 999px;
+            background-image: linear-gradient(to right, var(--gpd-accent), var(--gpd-accent));
         }
-        .gpd-progress-fill {
-            border-radius: inherit;
-            transition: width 200ms cubic-bezier(0.2, 0, 0, 1), background-color 160ms ease;
+        .gpd-progress-bar[data-tone="success"] {
+            background-image: linear-gradient(to right, var(--gpd-success), var(--gpd-success));
         }
-        .gpd-progress-fill[data-tone="success"] {
-            background: var(--gpd-success);
+        .gpd-progress-bar[data-tone="error"] {
+            background-image: linear-gradient(to right, var(--gpd-error), var(--gpd-error));
         }
-        .gpd-progress-fill[data-tone="error"] {
-            background: var(--gpd-error);
-        }
+
         @media (max-width: 420px) {
             #gpd-trigger-btn,
             #gpd-panel {
@@ -437,7 +449,7 @@
             #gpd-trigger-btn,
             #gpd-panel,
             .gpd-action-btn,
-            .gpd-progress-fill {
+            .gpd-progress-bar {
                 transition-duration: 1ms !important;
             }
         }
@@ -461,9 +473,10 @@
             --gpd-secondary-action-fill: #e8eaed;
             --gpd-secondary-action-hover: #dde1e6;
             --gpd-secondary-action-text: #3c4043;
-            --gpd-trigger-fill: rgba(18, 18, 18, 0.94);
-            --gpd-trigger-hover: #282828;
-            --gpd-trigger-text: #e8eaed;
+            --gpd-trigger-fill: #ffffff;
+            --gpd-trigger-hover: #f1f3f4;
+            --gpd-trigger-text: #3c4043;
+            --gpd-trigger-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
             --gpd-glass-elevation: 0 6px 20px var(--gpd-glass-shadow);
             --gpd-spring: cubic-bezier(0.2, 0, 0, 1.35);
             --gpd-shape-motion: cubic-bezier(0.2, 0, 0, 1);
@@ -486,6 +499,7 @@
             --gpd-trigger-fill: rgba(18, 18, 18, 0.94) !important;
             --gpd-trigger-hover: #282828 !important;
             --gpd-trigger-text: #e8eaed !important;
+            --gpd-trigger-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 4px 8px 3px rgba(0, 0, 0, 0.3) !important;
         }
         #gpd-trigger-btn {
             width: auto;
@@ -494,24 +508,19 @@
             padding: 0 20px;
             gap: 12px;
             border-radius: 999px;
-            border-color: transparent;
+            border: none;
             color: var(--gpd-trigger-text);
             background: var(--gpd-trigger-fill);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+            box-shadow: var(--gpd-trigger-shadow);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             transition:
                 background-color 180ms ease,
-                border-color 180ms ease,
                 box-shadow 180ms ease,
                 opacity 160ms ease;
         }
         #gpd-trigger-btn:hover {
-            border-radius: 999px;
-            color: var(--gpd-trigger-text);
-            border-color: var(--gpd-glass-outline);
             background: var(--gpd-trigger-hover);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
         }
         #gpd-trigger-btn:active {
             border-radius: 999px;
@@ -536,10 +545,13 @@
             -webkit-backdrop-filter: blur(12px);
         }
         .gpd-brand-mark {
-            border-radius: 18px;
+            border-radius: 14px;
             color: var(--gpd-expressive-on-container);
             background: var(--gpd-glass-primary);
             box-shadow: none;
+        }
+        .gpd-brand-mark:hover {
+            background: var(--gpd-glass-hover);
         }
         .gpd-close-btn {
             border-radius: 14px;
@@ -597,13 +609,11 @@
             color: var(--gpd-expressive-on-container) !important;
             background: var(--gpd-primary-action-fill) !important;
         }
-        .gpd-progress-fill {
-            background: var(--gpd-expressive);
-            box-shadow: none;
-        }
+
         .gpd-progress-bar {
             border: 1px solid var(--gpd-glass-outline);
-            background: rgba(127, 127, 127, 0.08);
+            background-color: rgba(127, 127, 127, 0.08);
+            background-image: linear-gradient(to right, var(--gpd-expressive), var(--gpd-expressive));
             box-shadow: none;
         }
         .gpd-link-list-section {
@@ -624,6 +634,10 @@
             overscroll-behavior: contain;
             scrollbar-width: thin;
             scrollbar-color: var(--gpd-glass-outline) transparent;
+            margin-right: -14px;
+            padding-right: 8px;
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
         }
         .gpd-link-list::-webkit-scrollbar {
             width: 6px;
@@ -648,24 +662,6 @@
             color: var(--gpd-secondary-action-text);
             background: var(--gpd-secondary-action-fill);
             font-family: inherit;
-            cursor: pointer;
-            transition:
-                border-radius 180ms var(--gpd-shape-motion),
-                background-color 160ms ease,
-                color 160ms ease,
-                border-color 160ms ease;
-        }
-        .gpd-link-item:hover {
-            border-radius: 12px;
-            border-color: var(--gpd-expressive);
-            background: var(--gpd-secondary-action-hover);
-        }
-        .gpd-link-item:active {
-            border-radius: 999px;
-        }
-        .gpd-link-item:focus-visible {
-            outline: 3px solid color-mix(in srgb, var(--gpd-focus) 55%, transparent);
-            outline-offset: 2px;
         }
         .gpd-link-item-name {
             min-width: 0;
@@ -675,18 +671,31 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .gpd-link-item-icon {
+        .gpd-link-item-btn {
             width: 28px;
             height: 28px;
             flex: 0 0 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            border-radius: 8px;
             color: inherit;
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 0;
+            cursor: pointer;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
         }
-        .gpd-link-item[data-copied="true"] {
-            border-color: var(--gpd-success);
+        .gpd-link-item-btn:hover {
+            background: var(--gpd-secondary-action-hover);
+        }
+        .gpd-link-item-btn:active {
+            transform: scale(0.92);
+        }
+        .gpd-link-item-btn:disabled {
+            opacity: 0.42;
+            cursor: not-allowed;
         }
         @media (prefers-reduced-motion: reduce) {
             .gpd-link-item {
@@ -696,9 +705,12 @@
     `;
     document.head.appendChild(style);
 
-    let panel, panelTrigger, panelClose, progressBar, progressFill;
+    let panel, panelTrigger, refreshBtn, panelClose, progressBar;
     let linkListSection, linkList;
-    let scanBtn, copyBtn, downloadAllBtn;
+    let progressIntervalId = null;
+    let currentVisibleProgress = 0;
+    let lastActualProgress = 0;
+    let copyBtn, downloadAllBtn;
     let albumMediaKey = null;
     let authKey = null;
     let fetchedItems = [];
@@ -720,13 +732,67 @@
         if (labelNode) labelNode.textContent = label;
     }
 
-    function setProgress(value, tone = 'primary') {
-        const boundedValue = Math.max(0, Math.min(100, Number(value) || 0));
-        if (progressFill) {
-            progressFill.style.width = `${boundedValue}%`;
-            progressFill.dataset.tone = tone;
+    function setProgress(completed, total, tone = 'primary') {
+        const totalVal = Number(total) || 100;
+        const completedVal = Number(completed) || 0;
+        const actualProgress = Math.max(0, Math.min(100, (completedVal / totalVal) * 100));
+
+        if (actualProgress < currentVisibleProgress || actualProgress === 0) {
+            currentVisibleProgress = actualProgress;
+            lastActualProgress = actualProgress;
+            if (progressIntervalId) {
+                clearInterval(progressIntervalId);
+                progressIntervalId = null;
+            }
+            if (progressBar) {
+                progressBar.style.setProperty('--gpd-progress-percent', `${currentVisibleProgress}%`);
+                progressBar.removeAttribute('data-tone');
+                progressBar.setAttribute('aria-valuenow', String(Math.round(currentVisibleProgress)));
+            }
+            return;
         }
-        if (progressBar) progressBar.setAttribute('aria-valuenow', String(boundedValue));
+
+        lastActualProgress = actualProgress;
+        if (progressBar) {
+            progressBar.dataset.tone = tone;
+            progressBar.setAttribute('aria-valuenow', String(Math.round(actualProgress)));
+        }
+
+        if (actualProgress >= 100) {
+            currentVisibleProgress = 100;
+            if (progressIntervalId) {
+                clearInterval(progressIntervalId);
+                progressIntervalId = null;
+            }
+            if (progressBar) {
+                progressBar.style.setProperty('--gpd-progress-percent', '100%');
+            }
+            return;
+        }
+
+        if (!progressIntervalId) {
+            const intervalMs = 30;
+            progressIntervalId = setInterval(() => {
+                if (currentVisibleProgress < lastActualProgress) {
+                    const diff = lastActualProgress - currentVisibleProgress;
+                    currentVisibleProgress += Math.max(0.4, diff * 0.15);
+                } else {
+                    const nextStep = lastActualProgress + (100 - lastActualProgress) * 0.05;
+                    const diff = nextStep - currentVisibleProgress;
+                    if (diff > 0.1) {
+                        currentVisibleProgress += diff * 0.015;
+                    }
+                }
+
+                if (currentVisibleProgress > 99.5 && lastActualProgress < 100) {
+                    currentVisibleProgress = 99.5;
+                }
+
+                if (progressBar) {
+                    progressBar.style.setProperty('--gpd-progress-percent', `${currentVisibleProgress.toFixed(2)}%`);
+                }
+            }, intervalMs);
+        }
     }
 
     function clearIndividualLinks() {
@@ -752,35 +818,61 @@
         copyableItems.forEach((item) => {
             const originalIndex = fetchedItems.indexOf(item);
             const filename = getDisplayFilename(item, originalIndex);
-            const row = document.createElement('button');
-            row.type = 'button';
+            const row = document.createElement('div');
             row.className = 'gpd-link-item';
             row.title = filename;
-            row.setAttribute('aria-label', `Copy direct link for ${filename}`);
 
             const name = document.createElement('span');
             name.className = 'gpd-link-item-name';
             name.textContent = filename;
 
-            const icon = document.createElement('span');
-            icon.className = 'gpd-link-item-icon';
-            icon.appendChild(createSvgIcon(PATH_COPY, 17));
-            row.append(name, icon);
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'gpd-link-item-btn';
+            copyBtn.title = 'Copy link';
+            copyBtn.setAttribute('aria-label', `Copy link for ${filename}`);
+            copyBtn.appendChild(createSvgIcon(PATH_COPY, 17));
 
-            row.addEventListener('click', async () => {
+            const downloadBtn = document.createElement('button');
+            downloadBtn.type = 'button';
+            downloadBtn.className = 'gpd-link-item-btn';
+            downloadBtn.title = 'Download';
+            downloadBtn.setAttribute('aria-label', `Download ${filename}`);
+            downloadBtn.appendChild(createSvgIcon(PATH_DOWNLOAD, 17));
+
+            row.append(name, copyBtn, downloadBtn);
+
+            copyBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
                 if (!item.downloadUrl) return;
                 try {
                     await navigator.clipboard.writeText(item.downloadUrl);
-                    row.dataset.copied = 'true';
-                    icon.replaceChildren(createSvgIcon(PATH_CHECK, 17));
-                    row.setAttribute('aria-label', `Direct link copied for ${filename}`);
+                    copyBtn.replaceChildren(createSvgIcon(PATH_CHECK, 17));
+                    copyBtn.setAttribute('aria-label', `Link copied for ${filename}`);
                     setTimeout(() => {
-                        row.dataset.copied = 'false';
-                        icon.replaceChildren(createSvgIcon(PATH_COPY, 17));
-                        row.setAttribute('aria-label', `Copy direct link for ${filename}`);
+                        copyBtn.replaceChildren(createSvgIcon(PATH_COPY, 17));
+                        copyBtn.setAttribute('aria-label', `Copy link for ${filename}`);
                     }, 1400);
                 } catch (error) {
                     console.error('Individual link copy failed:', filename, error);
+                }
+            });
+
+            downloadBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (!item.downloadUrl) return;
+                try {
+                    downloadBtn.disabled = true;
+                    downloadBtn.replaceChildren(createSvgIcon(PATH_CHECK, 17));
+                    await triggerSingleDownload(item.downloadUrl);
+                    setTimeout(() => {
+                        downloadBtn.disabled = false;
+                        downloadBtn.replaceChildren(createSvgIcon(PATH_DOWNLOAD, 17));
+                    }, 1400);
+                } catch (error) {
+                    console.error('Download failed:', filename, error);
+                    downloadBtn.disabled = false;
+                    downloadBtn.replaceChildren(createSvgIcon(PATH_DOWNLOAD, 17));
                 }
             });
 
@@ -816,9 +908,12 @@
         const panelHeader = document.createElement('div');
         panelHeader.className = 'gpd-panel-header';
 
-        const brandMark = document.createElement('div');
-        brandMark.className = 'gpd-brand-mark';
-        brandMark.appendChild(createDownloadIcon(21));
+        refreshBtn = document.createElement('button');
+        refreshBtn.type = 'button';
+        refreshBtn.className = 'gpd-brand-mark';
+        refreshBtn.title = 'Refresh';
+        refreshBtn.setAttribute('aria-label', 'Refresh album metadata');
+        refreshBtn.appendChild(createSvgIcon(PATH_REFRESH, 21));
 
         const headingGroup = document.createElement('div');
         headingGroup.className = 'gpd-heading-group';
@@ -836,7 +931,7 @@
         panelClose.setAttribute('aria-label', 'Close album download tools');
         panelClose.appendChild(createSvgIcon(PATH_CLOSE, 19));
 
-        panelHeader.append(brandMark, headingGroup, panelClose);
+        panelHeader.append(refreshBtn, headingGroup, panelClose);
         panel.appendChild(panelHeader);
 
         // Progress bar
@@ -847,35 +942,22 @@
         progressBar.setAttribute('aria-valuemin', '0');
         progressBar.setAttribute('aria-valuemax', '100');
         progressBar.setAttribute('aria-valuenow', '0');
-
-        progressFill = document.createElement('div');
-        progressFill.className = 'gpd-progress-fill';
-        progressBar.appendChild(progressFill);
         panel.appendChild(progressBar);
 
         const actions = document.createElement('div');
         actions.className = 'gpd-actions';
 
-        // 3 Buttons
-        scanBtn = document.createElement('button');
-        scanBtn.type = 'button';
-        scanBtn.className = 'gpd-action-btn gpd-action-btn-primary gpd-action-btn--wide';
-        scanBtn.setAttribute('aria-live', 'polite');
-        setButtonContent(scanBtn, PATH_LINK, 'Fetch links');
-        actions.appendChild(scanBtn);
-
         copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'gpd-action-btn';
-        setButtonContent(copyBtn, PATH_COPY, 'Copy all');
-        copyBtn.disabled = true;
+        setButtonContent(copyBtn, PATH_LINK, 'Download files');
+        copyBtn.dataset.mode = 'fetch';
         actions.appendChild(copyBtn);
 
         downloadAllBtn = document.createElement('button');
         downloadAllBtn.type = 'button';
-        downloadAllBtn.className = 'gpd-action-btn';
-        setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download');
-        downloadAllBtn.disabled = true;
+        downloadAllBtn.className = 'gpd-action-btn gpd-action-btn-primary';
+        setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
         actions.appendChild(downloadAllBtn);
 
         panel.appendChild(actions);
@@ -892,47 +974,31 @@
         panel.appendChild(linkListSection);
         document.body.appendChild(panel);
 
-        // Event Listeners for Hover-triggered Menu
-        let closeTimeout = null;
+        // Event Listeners for Click-triggered Menu
         function openPanel() {
-            if (closeTimeout) {
-                clearTimeout(closeTimeout);
-                closeTimeout = null;
-            }
             panel.classList.add('gpd-visible');
             panel.setAttribute('aria-hidden', 'false');
             panelTrigger.setAttribute('aria-expanded', 'true');
             panelTrigger.style.opacity = '0';
             panelTrigger.style.pointerEvents = 'none';
         }
-        function closePanel(immediate = false) {
-            if (closeTimeout) {
-                if (!immediate) return;
-                clearTimeout(closeTimeout);
-                closeTimeout = null;
+        function closePanel() {
+            panel.classList.remove('gpd-visible');
+            panel.setAttribute('aria-hidden', 'true');
+            panelTrigger.setAttribute('aria-expanded', 'false');
+            panelTrigger.style.opacity = '1';
+            panelTrigger.style.pointerEvents = 'auto';
+            if (progressIntervalId) {
+                clearInterval(progressIntervalId);
+                progressIntervalId = null;
             }
-            const finishClose = () => {
-                if (!immediate && panel.matches(':hover, :focus-within')) {
-                    closeTimeout = null;
-                    return;
-                }
-                panel.classList.remove('gpd-visible');
-                panel.setAttribute('aria-hidden', 'true');
-                panelTrigger.setAttribute('aria-expanded', 'false');
-                panelTrigger.style.opacity = '1';
-                panelTrigger.style.pointerEvents = 'auto';
-                closeTimeout = null;
-            };
-            if (immediate) finishClose();
-            else closeTimeout = setTimeout(finishClose, 260);
         }
 
-        panelTrigger.addEventListener('mouseenter', openPanel);
-        panelTrigger.addEventListener('mouseleave', closePanel);
-        panel.addEventListener('mouseenter', openPanel);
-        panel.addEventListener('mouseleave', closePanel);
+        refreshBtn.addEventListener('click', () => {
+            resetDownloaderState();
+        });
         panelClose.addEventListener('click', () => {
-            closePanel(true);
+            closePanel();
             panelTrigger.focus({ preventScroll: true });
         });
 
@@ -940,7 +1006,7 @@
         panelTrigger.addEventListener('click', (e) => {
             e.stopPropagation();
             if (panel.classList.contains('gpd-visible')) {
-                closePanel(true);
+                closePanel();
             } else {
                 openPanel();
             }
@@ -951,18 +1017,17 @@
             if (panel.classList.contains('gpd-visible') && 
                 !panel.contains(e.target) && 
                 !panelTrigger.contains(e.target)) {
-                closePanel(true);
+                closePanel();
             }
         });
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && panel.classList.contains('gpd-visible')) {
-                closePanel(true);
+                closePanel();
                 panelTrigger.focus({ preventScroll: true });
             }
         });
 
-        scanBtn.addEventListener('click', startScanningWorkflow);
-        copyBtn.addEventListener('click', startCopyWorkflow);
+        copyBtn.addEventListener('click', handleCopyBtnClick);
         downloadAllBtn.addEventListener('click', startDownloadAllWorkflow);
 
         startUrlListener();
@@ -1026,18 +1091,15 @@
                 lastAlbumKey = albumMediaKey;
                 fetchedItems = [];
                 clearIndividualLinks();
-                setProgress(0);
-                if (scanBtn) {
-                    scanBtn.disabled = false;
-                    setButtonContent(scanBtn, PATH_LINK, 'Fetch links');
-                }
+                setProgress(0, 100);
                 if (copyBtn) {
-                    copyBtn.disabled = true;
-                    setButtonContent(copyBtn, PATH_COPY, 'Copy all');
+                    copyBtn.disabled = false;
+                    setButtonContent(copyBtn, PATH_LINK, 'Download files');
+                    copyBtn.dataset.mode = 'fetch';
                 }
                 if (downloadAllBtn) {
-                    downloadAllBtn.disabled = true;
-                    setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download');
+                    downloadAllBtn.disabled = false;
+                    setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
                 }
             }
         } else {
@@ -1153,11 +1215,13 @@
         return filename;
     }
 
-    async function resolveAllDownloadUrls(readNamesDuringResolve = false) {
+    async function resolveAllDownloadUrls(readNamesDuringResolve = false, targetBtn) {
         const total = fetchedItems.length;
-        const activityLabel = readNamesDuringResolve ? 'Loading files' : 'Resolving links';
-        setButtonLabel(scanBtn, `${activityLabel} 0/${total}`);
-        setProgress(0);
+        const activityLabel = 'Scanning';
+        if (targetBtn) {
+            setButtonLabel(targetBtn, `${activityLabel} 0/${total}`);
+        }
+        setProgress(0, total);
 
         let completed = 0;
         let nextIndex = 0;
@@ -1180,9 +1244,10 @@
                     console.error('Failed to resolve album item:', item.mediaKey, error);
                 } finally {
                     completed++;
-                    const percent = Math.round((completed / total) * 100);
-                    setProgress(percent);
-                    setButtonLabel(scanBtn, `${activityLabel} ${completed}/${total}`);
+                    setProgress(completed, total);
+                    if (targetBtn) {
+                        setButtonLabel(targetBtn, `${activityLabel} ${completed}/${total}`);
+                    }
                 }
             }
         }
@@ -1341,7 +1406,7 @@
         });
     }
 
-    async function resolveSharedFilenamesFromDownloadHeaders() {
+    async function resolveSharedFilenamesFromDownloadHeaders(targetBtn) {
         const unresolvedItems = fetchedItems.filter(
             item => (!item.filename || item.filename === '(unknown)') && item.downloadUrl
         );
@@ -1349,7 +1414,9 @@
 
         let completed = 0;
         let nextIndex = 0;
-        setButtonLabel(scanBtn, `Reading names 0/${unresolvedItems.length}`);
+        if (targetBtn) {
+            setButtonLabel(targetBtn, `Names 0/${unresolvedItems.length}`);
+        }
 
         async function worker() {
             while (nextIndex < unresolvedItems.length) {
@@ -1357,7 +1424,9 @@
                 await resolveFilenameForItem(item);
 
                 completed++;
-                setButtonLabel(scanBtn, `Reading names ${completed}/${unresolvedItems.length}`);
+                if (targetBtn) {
+                    setButtonLabel(targetBtn, `Names ${completed}/${unresolvedItems.length}`);
+                }
             }
         }
 
@@ -1376,17 +1445,40 @@
         }
     }
 
-    async function startScanningWorkflow() {
+    function resetDownloaderState() {
+        if (isWorking) return;
+        fetchedItems = [];
+        clearIndividualLinks();
+        setProgress(0, 100);
+        if (copyBtn) {
+            copyBtn.disabled = false;
+            setButtonContent(copyBtn, PATH_LINK, 'Download files');
+            copyBtn.dataset.mode = 'fetch';
+        }
+        if (downloadAllBtn) {
+            downloadAllBtn.disabled = false;
+            setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
+        }
+    }
+
+    async function handleCopyBtnClick() {
+        if (copyBtn.dataset.mode === 'fetch') {
+            await startSlowFetchWorkflow();
+        } else {
+            await startCopyWorkflow();
+        }
+    }
+
+    async function startSlowFetchWorkflow() {
         if (!albumMediaKey || isWorking) return;
 
         isWorking = true;
-        scanBtn.disabled = true;
         copyBtn.disabled = true;
         downloadAllBtn.disabled = true;
         
-        scanBtn.setAttribute('aria-busy', 'true');
-        setButtonLabel(scanBtn, 'Scanning album');
-        setProgress(0);
+        copyBtn.setAttribute('aria-busy', 'true');
+        setButtonLabel(copyBtn, 'Scanning');
+        setProgress(0, 100);
         clearIndividualLinks();
 
         try {
@@ -1410,10 +1502,11 @@
             albumItems = [...new Set(albumItems)];
             const total = albumItems.length;
             if (total === 0) {
-                setButtonLabel(scanBtn, 'Try again');
-                setProgress(100, 'error');
+                setButtonLabel(copyBtn, 'Try again');
+                setProgress(100, 100, 'error');
                 isWorking = false;
-                scanBtn.disabled = false;
+                copyBtn.disabled = false;
+                downloadAllBtn.disabled = false;
                 return;
             }
 
@@ -1428,53 +1521,47 @@
             if (isSharedAlbum) {
                 // Shared-only media does not expose filenames through EWgK9e.
                 // Read each header immediately after its direct URL becomes available.
-                await resolveAllDownloadUrls(true);
+                await resolveAllDownloadUrls(true, copyBtn);
             } else {
                 // Owned albums can load metadata in one batch while direct URLs resolve.
                 const filenamePromise = resolveAllFilenames();
-                await resolveAllDownloadUrls(false);
+                await resolveAllDownloadUrls(false, copyBtn);
                 await filenamePromise;
-                await resolveSharedFilenamesFromDownloadHeaders();
+                await resolveSharedFilenamesFromDownloadHeaders(copyBtn);
             }
 
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
             const failedCount = total - urls.length;
-            const unresolvedFilenameCount = fetchedItems.filter(
-                item => item.downloadUrl && (!item.filename || item.filename === '(unknown)')
-            ).length;
+            
             if (urls.length === 0) {
-                setButtonLabel(scanBtn, 'Try again');
-                setProgress(100, 'error');
-                copyBtn.disabled = true;
-                downloadAllBtn.disabled = true;
+                setButtonLabel(copyBtn, 'Try again');
+                setProgress(100, 100, 'error');
+                copyBtn.disabled = false;
+                downloadAllBtn.disabled = false;
             } else if (failedCount > 0) {
-                setButtonLabel(scanBtn, `Retry ${failedCount} missing`);
-                setButtonLabel(copyBtn, `Copy all ${urls.length}`);
-                setButtonLabel(downloadAllBtn, `Download ${urls.length}`);
-                setProgress(Math.round((urls.length / total) * 100), 'error');
+                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length}`);
+                copyBtn.dataset.mode = 'copy';
+                setProgress(urls.length, total, 'error');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
                 renderIndividualLinks();
             } else {
-                setButtonLabel(
-                    scanBtn,
-                    unresolvedFilenameCount ? `Retry ${unresolvedFilenameCount} names` : 'Refresh links'
-                );
-                setButtonLabel(copyBtn, 'Copy all');
-                setButtonLabel(downloadAllBtn, 'Download');
-                setProgress(100, unresolvedFilenameCount ? 'error' : 'success');
+                setButtonContent(copyBtn, PATH_COPY, 'Copy all');
+                copyBtn.dataset.mode = 'copy';
+                setProgress(total, total, 'success');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
                 renderIndividualLinks();
             }
         } catch (error) {
             console.error('Fetch error:', error);
-            setButtonLabel(scanBtn, 'Try again');
-            setProgress(100, 'error');
+            setButtonLabel(copyBtn, 'Try again');
+            setProgress(100, 100, 'error');
+            copyBtn.disabled = false;
+            downloadAllBtn.disabled = false;
         } finally {
             isWorking = false;
-            scanBtn.disabled = false;
-            scanBtn.removeAttribute('aria-busy');
+            copyBtn.removeAttribute('aria-busy');
         }
     }
 
@@ -1502,46 +1589,99 @@
     }
 
     async function startDownloadAllWorkflow() {
-        if (fetchedItems.length === 0 || isWorking) return;
-
-        const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
-        if (urls.length === 0) {
-            return;
-        }
+        if (!albumMediaKey || isWorking) return;
 
         isWorking = true;
-        scanBtn.disabled = true;
         copyBtn.disabled = true;
         downloadAllBtn.disabled = true;
 
         downloadAllBtn.setAttribute('aria-busy', 'true');
-        setButtonLabel(downloadAllBtn, `Downloading 0/${urls.length}`);
-        setProgress(0);
+        setButtonLabel(downloadAllBtn, 'Downloading...');
+        setProgress(0, 100);
 
         try {
+            // Step 1: Scan/fetch albumItems if not already loaded
+            if (fetchedItems.length === 0) {
+                
+                let albumItems = [];
+                let nextPageId = null;
+                const seenPageIds = new Set();
+
+                do {
+                    const resData = await sendRpc('snAcKc', [albumMediaKey, nextPageId, null, authKey]);
+                    const pageItems = resData[1] || [];
+                    albumItems.push(...pageItems.map(item => item[0]).filter(Boolean));
+                    nextPageId = resData[2] || null;
+                    if (nextPageId) {
+                        if (seenPageIds.has(nextPageId)) {
+                            throw new Error('Album pagination returned a repeated page token');
+                        }
+                        seenPageIds.add(nextPageId);
+                    }
+                } while (nextPageId);
+
+                albumItems = [...new Set(albumItems)];
+                const total = albumItems.length;
+                if (total === 0) {
+                    setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
+                    setProgress(100, 100, 'error');
+                    isWorking = false;
+                    copyBtn.disabled = false;
+                    downloadAllBtn.disabled = false;
+                    return;
+                }
+
+                fetchedItems = albumItems.map(mediaKey => ({
+                    mediaKey,
+                    downloadUrl: null,
+                    filename: null
+                }));
+            }
+
+            // Step 2: Resolve URLs in fast mode (no filenames) if not all resolved
+            const unresolvedUrls = fetchedItems.filter(item => !item.downloadUrl);
+            if (unresolvedUrls.length > 0) {
+                await resolveAllDownloadUrls(false, null);
+            }
+
+            const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
+            if (urls.length === 0) {
+                setButtonLabel(downloadAllBtn, 'Failed');
+                setProgress(100, 100, 'error');
+                setTimeout(() => {
+                    setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
+                }, 3000);
+                return;
+            }
+
+            // Step 3: Trigger download
+            setButtonLabel(downloadAllBtn, `Downloading 0/${urls.length}`);
+            setProgress(0, urls.length);
+
             for (let i = 0; i < urls.length; i++) {
                 setButtonLabel(downloadAllBtn, `Downloading ${i + 1}/${urls.length}`);
-                const percent = Math.round(((i + 1) / urls.length) * 100);
-                setProgress(percent);
+                setProgress(i + 1, urls.length);
                 
                 await triggerSingleDownload(urls[i]);
                 await new Promise(r => setTimeout(r, 500));
             }
 
-            setButtonContent(downloadAllBtn, PATH_CHECK, 'Started');
-            setProgress(100, 'success');
+            setButtonContent(downloadAllBtn, PATH_CHECK, 'Done');
+            setProgress(urls.length, urls.length, 'success');
             
             setTimeout(() => {
-                setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download');
+                setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
             }, 4000);
 
         } catch (error) {
             console.error('Download all error:', error);
-            setButtonLabel(downloadAllBtn, 'Download failed');
-            setProgress(100, 'error');
+            setButtonLabel(downloadAllBtn, 'Failed');
+            setProgress(100, 100, 'error');
+            setTimeout(() => {
+                setButtonContent(downloadAllBtn, PATH_DOWNLOAD, 'Download all');
+            }, 3000);
         } finally {
             isWorking = false;
-            scanBtn.disabled = false;
             copyBtn.disabled = false;
             downloadAllBtn.disabled = false;
             downloadAllBtn.removeAttribute('aria-busy');
