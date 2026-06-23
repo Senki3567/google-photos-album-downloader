@@ -4,8 +4,8 @@ Userscript Tampermonkey siêu nhẹ, mượt mà và bảo mật giúp lấy lin
 
 🌐 **[English (Tiếng Anh)](./README.md)**
 <p align="center">
-  <img src="./preview_light.png" width="48%" alt="GP Downloader Light Mode" />
-  <img src="./preview_dark.png" width="48%" alt="GP Downloader Dark Mode" />
+  <img src="./assets/preview_light.png" width="48%" alt="GP Downloader Light Mode" />
+  <img src="./assets/preview_dark.png" width="48%" alt="GP Downloader Dark Mode" />
 </p>
 
 ---

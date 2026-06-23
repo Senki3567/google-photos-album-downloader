@@ -4,8 +4,8 @@ A lightweight, premium, and secure Tampermonkey userscript to retrieve and downl
 
 🌐 **[Tiếng Việt (Vietnamese)](./README.vi.md)**
 <p align="center">
-  <img src="./preview_light.png" width="48%" alt="GP Downloader Light Mode" />
-  <img src="./preview_dark.png" width="48%" alt="GP Downloader Dark Mode" />
+  <img src="./assets/preview_light.png" width="48%" alt="GP Downloader Light Mode" />
+  <img src="./assets/preview_dark.png" width="48%" alt="GP Downloader Dark Mode" />
 </p>
 
 ---
