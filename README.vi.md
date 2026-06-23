@@ -3,8 +3,10 @@
 Userscript Tampermonkey siêu nhẹ, mượt mà và bảo mật giúp lấy link tải trực tiếp chất lượng gốc của tất cả ảnh và video trong bất kỳ album chia sẻ hoặc album cá nhân nào trên Google Photos.
 
 🌐 **[English (Tiếng Anh)](./README.md)**
-
-![GP Downloader Preview](./preview.png)
+<p align="center">
+  <img src="./preview_light.png" width="48%" alt="GP Downloader Light Mode" />
+  <img src="./preview_dark.png" width="48%" alt="GP Downloader Dark Mode" />
+</p>
 
 ---
 
@@ -12,10 +14,11 @@ Userscript Tampermonkey siêu nhẹ, mượt mà và bảo mật giúp lấy lin
 
 - **Tải Xuống Tất Cả (Download All)**: Tự động kích hoạt tải xuống hàng loạt, tuần tự (cách nhau 500ms) bằng iframe ẩn. Giúp tránh việc trình duyệt bị nghẽn hoặc chặn tải hàng loạt.
 - **Sao Chép Toàn Bộ Link (Copy All Links)**: Sao chép toàn bộ đường dẫn tải trực tiếp vào clipboard chỉ với 1 cú click.
-- **Hover để Sao chép Link**: Sau khi quét xong album, di chuột vào bất kỳ tệp nào trên lưới và click nút `🔗 Copy Link` nổi ở góc trên bên phải của tệp để sao chép nhanh link tải trực tiếp của tệp đó.
-- **Ưu Tiên Chất Lượng Gốc**: Mặc định tải file ở chất lượng gốc (hoặc chất lượng tốt nhất đối với các tệp video nén).
-- **Giao Diện Trực Quan Tối Giản**: Panel điều khiển nằm ở góc dưới bên trái, thiết kế tông màu xám/tối sạch sẽ, chuyên nghiệp, không làm ảnh hưởng đến trải nghiệm xem ảnh của bạn.
-- **Bảo Mật An Toàn**: Bỏ qua các kiểm tra bảo mật ngặt nghèo (Trusted Types và Content Security Policy) của Google bằng cách khởi tạo các thành phần DOM lập trình thay vì dùng `innerHTML` không an toàn.
+- **Danh Sách File Riêng Biệt**: Hiển thị danh sách cuộn mượt mà các tệp tin đã quét ngay trong bảng điều khiển. Cho phép sao chép link trực tiếp hoặc tải từng tệp riêng lẻ với các nút chức năng trực quan.
+- **Ưu Tiên Chất Lượng Gốc**: Mặc định tải file ở chất lượng gốc (hoặc tự động chuyển sang chất lượng cao nhất khả dụng như video transcode).
+- **Giao Diện Kính Mờ (Glassmorphic) Sáng/Tối**: Bảng điều khiển dạng kính mờ bán trong suốt kết hợp hiệu ứng blur sang trọng và màu nhấn xanh Google Photos Blue. Tự động nhận diện và chuyển đổi giao diện đồng bộ theo theme đang bật của Google Photos.
+- **Bảo Mật An Toàn**: Hoàn toàn tuân thủ các quy tắc bảo mật CSP (Content Security Policy) và chính sách Trusted Types của Google Photos thông qua việc tạo các phần tử DOM bằng code thay vì dùng `innerHTML` không an toàn.
+- **Chạy ở Cửa Sổ Chính**: Hoạt động an toàn dưới chỉ thị `@noframes` để đảm bảo chỉ kích hoạt một lần duy nhất tại cửa sổ chính.
 
 ---
 

@@ -3,19 +3,21 @@
 A lightweight, premium, and secure Tampermonkey userscript to retrieve and download original quality direct download links for all files (photos and videos) in any Google Photos shared or private album.
 
 🌐 **[Tiếng Việt (Vietnamese)](./README.vi.md)**
-
-![GP Downloader Preview](./preview.png)
+<p align="center">
+  <img src="./preview_light.png" width="48%" alt="GP Downloader Light Mode" />
+  <img src="./preview_dark.png" width="48%" alt="GP Downloader Dark Mode" />
+</p>
 
 ---
 
 ## Key Features
 
 - **Sequential Download All**: Automatically triggers sequential file downloads for the entire album using hidden iframes with a 500ms stagger delay, preventing browser throttling and navigation crashes.
-- **Copy All Links**: Easily copy all resolved direct download URLs to clipboard.
-- **Hover to Copy Link**: After scanning, hover over any item in the grid and click the floating `🔗 Copy Link` button on the top-right of the card to copy its direct download link instantly.
+- **Copy All Links**: Easily copy all resolved direct download URLs to clipboard in one click.
+- **Individual File List**: Displays a beautiful, scrollable list of all scanned items inside the panel. Copy direct links or download files individually with dedicated action buttons.
 - **Original Quality Priority**: Fetches original quality links by default (falls back gracefully to high quality when original is not direct, like on certain video transcodes).
-- **Premium Grayscale Dark UI**: Sleek, modern, and non-intrusive floating panel in the bottom-left corner that blends beautifully with the Google Photos layout.
-- **Strict Security Safe**: Fully compliant with Google Photos' strict CSP (Content Security Policy) and Trusted Types policy. Employs programmatic DOM node creation instead of unsafe `innerHTML`.
+- **Unified Light/Dark Glassmorphism UI**: High-end translucent panel with a blur effect and Google Photos Blue accents that auto-detects and adapts to Google Photos' active theme.
+- **Strict Security & CSP Safe**: Fully compliant with Google Photos' strict CSP (Content Security Policy) and Trusted Types policy. Employs programmatic DOM node creation instead of unsafe `innerHTML`.
 - **Top Window execution**: Works safely under `@noframes` to run only once in the main tab context.
 
 ---
