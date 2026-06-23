@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Google Photos Album Downloader
 // @namespace    http://tampermonkey.net/
-// @version      3.8.8
+// @version      3.9.5
 // @description  Streamlined floating button and menu downloader with Fetch, Copy, and Download All for Google Photos Albums (Trusted Types & CSP Safe)
 // @author       Antigravity
 // @match        *://*.google.com/*
@@ -25,7 +25,7 @@
         return;
     }
 
-    console.log('[GP Downloader] Userscript 3.8.8 injected.');
+    console.log('[GP Downloader] Userscript 3.9.5 injected.');
 
     // Material Design SVG Paths
     const PATH_DOWNLOAD = "M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z";
@@ -500,23 +500,29 @@
             box-shadow: var(--gpd-trigger-shadow);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            font-family: "Google Sans Flex", "Google Sans Text", "Google Sans", Roboto, Arial, sans-serif;
+            font-variation-settings: "wght" 500, "opsz" 14;
             transition:
-                background-color 180ms ease,
-                box-shadow 180ms ease,
-                opacity 160ms ease;
+                background-color 200ms cubic-bezier(0.2, 0, 0, 1),
+                box-shadow 200ms cubic-bezier(0.2, 0, 0, 1),
+                opacity 200ms cubic-bezier(0.2, 0, 0, 1),
+                transform 200ms cubic-bezier(0.2, 0, 0, 1),
+                font-variation-settings 200ms cubic-bezier(0.2, 0, 0, 1);
         }
         #gpd-trigger-btn:hover {
             background: var(--gpd-trigger-hover);
+            font-variation-settings: "wght" 500, "opsz" 14, "GRAD" 40;
         }
         #gpd-trigger-btn:active {
             border-radius: 999px;
-            transform: none;
+            transform: scale(0.96);
             background: var(--gpd-trigger-fill);
         }
         .gpd-trigger-label {
-            font-family: "Google Sans", Roboto, Arial, sans-serif;
+            font-family: "Google Sans Flex", "Google Sans Text", "Google Sans", Roboto, Arial, sans-serif;
             font-size: 14px;
-            font-weight: 400;
+            font-weight: 500;
+            font-variation-settings: "wght" 500, "opsz" 14;
             line-height: 1;
             white-space: nowrap;
         }
@@ -529,6 +535,33 @@
             box-shadow: var(--gpd-glass-elevation);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            font-family: "Google Sans Flex", "Google Sans Text", "Google Sans", Roboto, Arial, sans-serif;
+            transform: translateY(16px);
+            visibility: hidden;
+            opacity: 0;
+            transition: 
+                opacity 200ms cubic-bezier(0.3, 0, 0.8, 0.15), 
+                transform 200ms cubic-bezier(0.3, 0, 0.8, 0.15), 
+                visibility 0s linear 200ms;
+        }
+        #gpd-panel.gpd-visible {
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
+            transition: 
+                opacity 300ms cubic-bezier(0.05, 0.7, 0.1, 1), 
+                transform 400ms cubic-bezier(0.05, 0.7, 0.1, 1), 
+                visibility 0s linear 0s;
+        }
+        .gpd-title {
+            font-family: "Google Sans Flex", "Google Sans", sans-serif;
+            font-weight: 600;
+            font-variation-settings: "wght" 600, "opsz" 16, "GRAD" 10;
+        }
+        .gpd-subtitle {
+            font-family: "Google Sans Flex", "Google Sans Text", sans-serif;
+            font-weight: 400;
+            font-variation-settings: "wght" 400, "opsz" 12, "GRAD" -20;
         }
         .gpd-brand-mark,
         .gpd-close-btn {
@@ -537,7 +570,10 @@
             background: var(--gpd-glass-primary);
             box-shadow: none;
             border: none;
-            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+            transition: 
+                background-color 200ms cubic-bezier(0.2, 0, 0, 1), 
+                color 200ms cubic-bezier(0.2, 0, 0, 1), 
+                transform 200ms cubic-bezier(0.2, 0, 0, 1);
         }
         .gpd-brand-mark:hover,
         .gpd-close-btn:hover {
@@ -545,7 +581,7 @@
         }
         .gpd-brand-mark:active,
         .gpd-close-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.94);
         }
         .gpd-action-btn {
             border-radius: 18px;
@@ -553,20 +589,25 @@
             color: var(--gpd-secondary-action-text);
             background: var(--gpd-secondary-action-fill);
             box-shadow: none;
+            font-family: "Google Sans Flex", "Google Sans Text", "Google Sans", sans-serif;
+            font-weight: 500;
+            font-variation-settings: "wght" 500, "opsz" 14, "wdth" 96;
             transition:
-                border-radius 180ms var(--gpd-shape-motion),
-                background-color 160ms ease,
-                color 160ms ease,
-                border-color 160ms ease;
+                border-radius 200ms cubic-bezier(0.2, 0, 0, 1),
+                background-color 200ms cubic-bezier(0.2, 0, 0, 1),
+                color 200ms cubic-bezier(0.2, 0, 0, 1),
+                border-color 200ms cubic-bezier(0.2, 0, 0, 1),
+                transform 200ms cubic-bezier(0.2, 0, 0, 1),
+                font-variation-settings 200ms cubic-bezier(0.2, 0, 0, 1);
         }
         .gpd-action-btn:hover:not(:disabled) {
             border-radius: 18px;
             border-color: var(--gpd-expressive);
             background: var(--gpd-secondary-action-hover);
+            font-variation-settings: "wght" 500, "opsz" 14, "wdth" 96, "GRAD" 40;
         }
         .gpd-action-btn:active:not(:disabled) {
-            border-radius: 999px;
-            transform: none;
+            transform: scale(0.96);
         }
         .gpd-action-btn-primary {
             color: var(--gpd-expressive-on-container) !important;
@@ -578,12 +619,14 @@
             color: var(--gpd-expressive-on-container) !important;
             border-color: var(--gpd-expressive);
             background: var(--gpd-primary-action-hover) !important;
+            font-variation-settings: "wght" 500, "opsz" 14, "wdth" 96, "GRAD" 40;
         }
         .gpd-action-btn-primary:active:not(:disabled) {
             color: var(--gpd-expressive-on-container) !important;
             background: var(--gpd-primary-action-fill) !important;
+            transform: scale(0.96);
         }
-
+ 
         .gpd-progress-bar {
             border: 1px solid var(--gpd-glass-outline);
             background-color: rgba(127, 127, 127, 0.08);
@@ -615,6 +658,8 @@
             scrollbar-width: thin;
             scrollbar-color: var(--gpd-glass-outline) transparent;
             margin-right: -14px;
+            padding-top: 12px;
+            padding-bottom: 12px;
             padding-right: 8px;
             -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
             mask-image: linear-gradient(to bottom, transparent 0%, black 12px, black calc(100% - 12px), transparent 100%);
@@ -653,6 +698,9 @@
             white-space: nowrap;
             user-select: none;
             -webkit-user-select: none;
+            font-family: "Google Sans Flex", "Google Sans Text", sans-serif;
+            font-weight: 400;
+            font-variation-settings: "wght" 400, "opsz" 13;
         }
         .gpd-link-item-btn {
             width: 28px;
@@ -668,7 +716,10 @@
             outline: none;
             padding: 0;
             cursor: pointer;
-            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+            transition: 
+                background-color 200ms cubic-bezier(0.2, 0, 0, 1), 
+                color 200ms cubic-bezier(0.2, 0, 0, 1), 
+                transform 200ms cubic-bezier(0.2, 0, 0, 1);
         }
         .gpd-link-item-btn:hover {
             background: var(--gpd-secondary-action-hover);
@@ -679,6 +730,11 @@
         .gpd-link-item-btn:disabled {
             opacity: 0.42;
             cursor: not-allowed;
+        }
+        .gpd-link-item-name-loading {
+            color: var(--gpd-text-secondary);
+            font-style: italic;
+            opacity: 0.75;
         }
         @media (prefers-reduced-motion: reduce) {
             .gpd-link-item {
@@ -788,7 +844,7 @@
 
     function getDisplayFilename(item, index) {
         const filename = typeof item?.filename === 'string' ? item.filename.trim() : '';
-        return filename && filename !== '(unknown)' ? filename : `File ${index + 1}`;
+        return filename && filename !== '(unknown)' ? filename : 'Loading...';
     }
 
     function renderIndividualLinks() {
@@ -807,10 +863,14 @@
             const row = document.createElement('div');
             row.className = 'gpd-link-item';
             row.title = filename;
+            row.dataset.mediaKey = item.mediaKey;
 
             const name = document.createElement('span');
             name.className = 'gpd-link-item-name';
             name.textContent = filename;
+            if (filename === 'Loading...') {
+                name.classList.add('gpd-link-item-name-loading');
+            }
             name.addEventListener('scroll', () => {
                 name.scrollLeft = 0;
             });
@@ -946,7 +1006,7 @@
         copyBtn = document.createElement('button');
         copyBtn.type = 'button';
         copyBtn.className = 'gpd-action-btn';
-        setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
+        setButtonContent(copyBtn, PATH_LINK, 'Copy links');
         copyBtn.dataset.mode = 'fetch';
         actions.appendChild(copyBtn);
 
@@ -1090,7 +1150,7 @@
                 setProgress(0, 100);
                 if (copyBtn) {
                     copyBtn.disabled = false;
-                    setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
+                    setButtonContent(copyBtn, PATH_LINK, 'Copy links');
                     copyBtn.dataset.mode = 'fetch';
                 }
                 if (downloadAllBtn) {
@@ -1434,43 +1494,62 @@
         });
     }
 
-    async function resolveSharedFilenamesFromDownloadHeaders(targetBtn) {
+    function updateUiRowFilename(item) {
+        if (!linkList) return;
+        try {
+            const escapedKey = CSS.escape(item.mediaKey);
+            const row = linkList.querySelector(`[data-media-key="${escapedKey}"]`);
+            if (row) {
+                const nameSpan = row.querySelector('.gpd-link-item-name');
+                const originalIndex = fetchedItems.indexOf(item);
+                const newName = getDisplayFilename(item, originalIndex);
+                if (nameSpan && nameSpan.textContent !== newName) {
+                    nameSpan.textContent = newName;
+                    row.title = newName;
+                    if (newName !== 'Loading...') {
+                        nameSpan.classList.remove('gpd-link-item-name-loading');
+                    }
+                    
+                    const buttons = row.querySelectorAll('.gpd-link-item-btn');
+                    if (buttons[0]) buttons[0].setAttribute('aria-label', `Copy link for ${newName}`);
+                    if (buttons[1]) buttons[1].setAttribute('aria-label', `Download ${newName}`);
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to update UI row filename:', e);
+        }
+    }
+
+    async function resolveSharedFilenamesInBg(targetAlbumKey) {
         const unresolvedItems = fetchedItems.filter(
             item => (!item.filename || item.filename === '(unknown)') && item.downloadUrl
         );
         if (!unresolvedItems.length) return;
 
-        let completed = 0;
         let nextIndex = 0;
-        if (targetBtn) {
-            setButtonLabel(targetBtn, `Names 0/${unresolvedItems.length}`);
-        }
+        const total = unresolvedItems.length;
 
         async function worker() {
             while (nextIndex < unresolvedItems.length) {
+                if (albumMediaKey !== targetAlbumKey) return;
                 const item = unresolvedItems[nextIndex++];
-                await resolveFilenameForItem(item);
-
-                completed++;
-                if (targetBtn) {
-                    setButtonLabel(targetBtn, `Names ${completed}/${unresolvedItems.length}`);
+                try {
+                    await resolveFilenameForItem(item);
+                    if (albumMediaKey === targetAlbumKey) {
+                        updateUiRowFilename(item);
+                    }
+                } catch (error) {
+                    console.warn('Background filename resolve failed:', item.mediaKey, error);
                 }
+                await new Promise(r => setTimeout(r, 100));
             }
         }
 
+        const concurrency = Math.min(4, getPipelineConcurrency(total));
         await Promise.all(Array.from(
-            { length: getPipelineConcurrency(unresolvedItems.length) },
+            { length: concurrency },
             () => worker()
         ));
-
-        const unresolvedCount = unresolvedItems.filter(
-            item => !item.filename || item.filename === '(unknown)'
-        ).length;
-        if (unresolvedCount) {
-            console.warn(
-                `[GP Downloader] Could not read ${unresolvedCount}/${unresolvedItems.length} shared filename headers.`
-            );
-        }
     }
 
     function resetDownloaderState() {
@@ -1480,7 +1559,7 @@
         setProgress(0, 100);
         if (copyBtn) {
             copyBtn.disabled = false;
-            setButtonContent(copyBtn, PATH_LINK, 'Fetch file list');
+            setButtonContent(copyBtn, PATH_LINK, 'Copy links');
             copyBtn.dataset.mode = 'fetch';
         }
         if (downloadAllBtn) {
@@ -1545,17 +1624,17 @@
                 filename: previousItems.get(mediaKey)?.filename || null
             }));
             
+            // Step 1: Resolve all download URLs (FAST, RPC only)
+            await resolveAllDownloadUrls(false, copyBtn);
+            
+            // Step 2: For owned albums, run batch filename resolution (FAST, RPC only)
             const isSharedAlbum = window.location.pathname.split('/').includes('share');
-            if (isSharedAlbum) {
-                // Shared-only media does not expose filenames through EWgK9e.
-                // Read each header immediately after its direct URL becomes available.
-                await resolveAllDownloadUrls(true, copyBtn);
-            } else {
-                // Owned albums can load metadata in one batch while direct URLs resolve.
-                const filenamePromise = resolveAllFilenames();
-                await resolveAllDownloadUrls(false, copyBtn);
-                await filenamePromise;
-                await resolveSharedFilenamesFromDownloadHeaders(copyBtn);
+            if (!isSharedAlbum) {
+                try {
+                    await resolveAllFilenames();
+                } catch (e) {
+                    console.warn('Batch filename fetch failed:', e);
+                }
             }
 
             const urls = fetchedItems.map(item => item.downloadUrl).filter(Boolean);
@@ -1566,20 +1645,16 @@
                 setProgress(100, 100, 'error');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
-            } else if (failedCount > 0) {
-                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} files`);
-                copyBtn.dataset.mode = 'copy';
-                setProgress(urls.length, total, 'error');
-                copyBtn.disabled = false;
-                downloadAllBtn.disabled = false;
-                renderIndividualLinks();
             } else {
-                setButtonContent(copyBtn, PATH_COPY, `Copy ${total} files`);
+                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} links`);
                 copyBtn.dataset.mode = 'copy';
-                setProgress(total, total, 'success');
+                setProgress(urls.length, total, failedCount > 0 ? 'error' : 'success');
                 copyBtn.disabled = false;
                 downloadAllBtn.disabled = false;
                 renderIndividualLinks();
+                
+                // Step 3: Run slow filename resolution in the background
+                resolveSharedFilenamesInBg(albumMediaKey);
             }
         } catch (error) {
             console.error('Fetch error:', error);
@@ -1606,13 +1681,13 @@
             setButtonContent(copyBtn, PATH_CHECK, 'Copied');
             
             setTimeout(() => {
-                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} files`);
+                setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} links`);
             }, 3000);
 
         } catch (error) {
             console.error('Copy error:', error);
             setButtonLabel(copyBtn, 'Copy failed');
-            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} files`), 2500);
+            setTimeout(() => setButtonContent(copyBtn, PATH_COPY, `Copy ${urls.length} links`), 2500);
         }
     }
 

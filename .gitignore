@@ -27,3 +27,8 @@ __pycache__/
 *.pyd
 .ipynb_checkpoints/
 scratch/
+
+# Local AI agents and codex configurations
+.agents/
+.codex/
+
